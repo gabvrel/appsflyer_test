@@ -64,15 +64,6 @@
                 <p class="text-xs mt-1"><b>Fix:</b> Click the Lion icon (Brave Shields) -> "Turn OFF Shields" for this site.</p>
             </div>
 
-            <!-- Checklist -->
-            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-sm text-blue-800">
-                 <p class="font-bold"><i class="fa-solid fa-circle-info"></i> Troubleshooting 400 Errors:</p>
-                 <ul class="list-disc ml-5 mt-1 space-y-1 text-xs">
-                    <li><b>Domain Whitelist:</b> Ensure <code><script>document.write(window.location.hostname)</script></code> is added to "Allowed Domains" in AppsFlyer Dashboard.</li>
-                    <li><b>Server Response:</b> Check the log on the right. If it says <code>Cannot find app configuration</code>, your ID is wrong. If it says <code>origin not allowed</code>, check dashboard.</li>
-                 </ul>
-            </div>
-
             <!-- Standard Events Grid -->
             <h2 class="text-gray-700 font-bold mb-4 flex items-center gap-2">
                 <i class="fa-solid fa-bolt text-blue-500"></i> Standard Events
@@ -85,7 +76,7 @@
                         <h3 class="font-semibold text-gray-800">Connection Test</h3>
                         <span class="text-xs bg-gray-200 text-gray-800 px-2 py-0.5 rounded">Ping</span>
                     </div>
-                    <p class="text-xs text-gray-500 mb-4">Sends a minimal <code>af_login</code> event to check if the server accepts your ID.</p>
+                    <p class="text-xs text-gray-500 mb-4">Sends a minimal custom event to check connectivity without strict validation.</p>
                     <button onclick="triggerEvent('ping')" class="w-full bg-gray-700 text-white py-2 rounded hover:bg-gray-800 transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-signal"></i> Send Ping
                     </button>
@@ -157,23 +148,23 @@
                 </div>
             </div>
 
-            <!-- Custom Event Builder -->
+            <!-- RAW API TESTER (NEW) -->
             <h2 class="text-gray-700 font-bold mb-4 flex items-center gap-2 border-t pt-6 border-gray-200">
-                <i class="fa-solid fa-code text-blue-500"></i> Custom Event Builder
+                <i class="fa-solid fa-wrench text-orange-500"></i> Raw API Tester (Advanced)
             </h2>
-            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-500 mb-1">Event Name</label>
-                        <input type="text" id="custom-name" value="af_level_achieved" class="w-full border rounded p-2 text-sm font-mono">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-xs font-semibold text-gray-500 mb-1">JSON Parameters</label>
-                        <textarea id="custom-json" rows="1" class="w-full border rounded p-2 text-sm font-mono console-font" placeholder='{"level": 5, "score": 2500}'>{"level": 5, "score": 2500}</textarea>
-                    </div>
+            <div class="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-700 text-gray-200">
+                <p class="text-xs text-gray-400 mb-2">Use this to test the exact body that worked in your manual tests. If this works but SDK fails, the SDK is generating bad JSON.</p>
+                
+                <div class="mb-2">
+                    <label class="block text-xs font-semibold mb-1">Endpoint</label>
+                    <input type="text" id="raw-url" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs font-mono text-green-400" value="https://wa.appsflyer.com/events?site-id=">
                 </div>
-                <button onclick="triggerEvent('custom')" class="w-full bg-gray-800 text-white py-2 rounded hover:bg-gray-900 transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-flask"></i> Fire Custom Event
+                <div class="mb-2">
+                    <label class="block text-xs font-semibold mb-1">Body (JSON)</label>
+                    <textarea id="raw-body" rows="4" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs font-mono text-green-400">{"cookie":"TEST-USER-ID","domain":".gabvrel.github.io"}</textarea>
+                </div>
+                <button onclick="sendRawRequest()" class="w-full bg-orange-600 text-white py-2 rounded hover:bg-orange-700 transition font-bold text-sm">
+                    <i class="fa-solid fa-paper-plane"></i> Send Raw POST
                 </button>
             </div>
 
@@ -229,7 +220,7 @@
             sdkLoaded: false
         };
 
-        // --- Network Interceptor (Monkey Patch XHR to read 400 response body) ---
+        // --- Network Interceptor ---
         function enableNetworkLogs() {
             const originalOpen = XMLHttpRequest.prototype.open;
             const originalSend = XMLHttpRequest.prototype.send;
@@ -247,11 +238,9 @@
                         const response = this.responseText;
                         let color = status >= 200 && status < 300 ? 'text-green-300' : 'text-red-400';
                         
-                        // Parse error message if possible to show user friendly text
                         let msg = `Server Response: ${status}`;
                         try {
                             if(response) {
-                                // Try to extract meaningful error message
                                 let cleanResponse = response;
                                 try {
                                     const json = JSON.parse(response);
@@ -279,7 +268,6 @@
                 document.getElementById('protocol-warning').classList.remove('hidden');
             }
 
-            // Check for Brave / Adblockers
             if (navigator.brave || (navigator.userAgent.includes('Brave')) || (navigator.userAgent.includes('Chrome') && !window.chrome)) {
                  document.getElementById('error-banner').classList.remove('hidden');
             }
@@ -288,6 +276,7 @@
             const savedCuid = localStorage.getItem('af_cuid');
             const connText = document.getElementById('conn-text');
             const connDot = document.getElementById('conn-dot');
+            const rawUrlInput = document.getElementById('raw-url');
 
             if (savedId) {
                 state.webAppId = savedId;
@@ -298,6 +287,9 @@
                 
                 connText.textContent = "Loading SDK...";
                 connDot.className = "w-2 h-2 rounded-full bg-yellow-400 animate-pulse";
+                
+                // Pre-fill raw tester with correct ID
+                rawUrlInput.value = `https://wa.appsflyer.com/events?site-id=${savedId}`;
                 
                 initializeSDK(savedId, savedCuid);
             } else {
@@ -319,11 +311,9 @@
             o.onload = function() {
                 state.sdkLoaded = true;
                 state.isInitialized = true;
-                
                 if(cuid) {
                     window.AF('pba', 'setCustomerUserId', cuid);
                 }
-
                 updateStatus(true);
                 logToConsole('SUCCESS', 'AppsFlyer Web SDK script loaded.', 'text-blue-300');
             };
@@ -356,7 +346,6 @@
             }
         }
 
-        // --- UI Logic ---
         function toggleConfig() {
             document.getElementById('config-modal').classList.toggle('hidden');
         }
@@ -365,15 +354,12 @@
             const appId = document.getElementById('config-appid').value.trim();
             const cuid = document.getElementById('config-cuid').value.trim();
             const errorMsg = document.getElementById('id-error');
-            
             const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             
             if (appId && !uuidRegex.test(appId)) {
                 errorMsg.classList.remove('hidden');
-                errorMsg.textContent = "Warning: This does not look like a Web PBA ID (UUID). 400 Errors likely.";
-                if(!confirm("The ID format looks wrong (usually should be a UUID like a1b2-c3d4...). Continue anyway?")) {
-                    return;
-                }
+                errorMsg.textContent = "Warning: This does not look like a Web PBA ID (UUID).";
+                if(!confirm("The ID format looks wrong. Continue?")) return;
             } else {
                 errorMsg.classList.add('hidden');
             }
@@ -391,11 +377,9 @@
 
         function logToConsole(type, message, colorClass = 'text-green-400') {
             const consoleOutput = document.getElementById('console-output');
-            
             if (consoleOutput.children.length === 1 && consoleOutput.children[0].classList.contains('italic')) {
                 consoleOutput.innerHTML = '';
             }
-
             const timestamp = new Date().toLocaleTimeString();
             const entry = document.createElement('div');
             entry.className = 'border-b border-gray-800 pb-2 mb-2 animate-fade-in';
@@ -406,13 +390,39 @@
                 </div>
                 <pre class="${colorClass} whitespace-pre-wrap break-all text-sm">${message}</pre>
             `;
-            
             consoleOutput.appendChild(entry);
             consoleOutput.scrollTop = consoleOutput.scrollHeight;
         }
 
         function clearLog() {
             document.getElementById('console-output').innerHTML = '<div class="text-gray-500 italic text-xs">Waiting for events...</div>';
+        }
+
+        // --- RAW API LOGIC (The Fix) ---
+        async function sendRawRequest() {
+            const url = document.getElementById('raw-url').value;
+            const bodyStr = document.getElementById('raw-body').value;
+            
+            logToConsole('RAW_POST', `Sending to: ${url}\nBody: ${bodyStr}`, 'text-orange-300');
+
+            try {
+                // We use fetch() here to bypass the XML monkey patch and the SDK logic
+                // This simulates the user's manual curl/postman test
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: bodyStr
+                });
+                
+                const text = await response.text();
+                if (response.ok) {
+                    logToConsole('RAW_SUCCESS', `Status: ${response.status} OK\nResponse: ${text}`, 'text-green-400 font-bold');
+                } else {
+                    logToConsole('RAW_FAIL', `Status: ${response.status}\nResponse: ${text}`, 'text-red-500 font-bold');
+                }
+            } catch (error) {
+                logToConsole('RAW_ERROR', error.message, 'text-red-500');
+            }
         }
 
         // --- Event Trigger Logic ---
@@ -423,8 +433,9 @@
             try {
                 switch(type) {
                     case 'ping':
-                         eventName = 'af_login';
-                         eventParams = { af_login_method: 'ping_test' };
+                         // CHANGED: Use a simple custom event name to avoid strict validation of af_login
+                         eventName = 'custom_ping_test';
+                         eventParams = { status: 'alive' };
                          break;
                     case 'purchase':
                         eventName = 'af_purchase';
@@ -437,7 +448,6 @@
                             af_order_id: document.getElementById('purchase-id').value
                         };
                         
-                        // FIX: Ensure content_id is ALWAYS present.
                         let contentId = document.getElementById('purchase-content-id').value.trim();
                         if (!contentId) contentId = 'default_sku_1'; 
                         eventParams.af_content_id = contentId;
@@ -478,7 +488,6 @@
 
             if (state.sdkLoaded && window.AF) {
                 window.AF('pba', 'event', eventPayload);
-                // Note: The success/fail message will now come from the interceptor in enableNetworkLogs
             } else if (state.webAppId) {
                  logToConsole('WARNING', 'SDK configured but script not loaded.', 'text-yellow-500');
             } else {
