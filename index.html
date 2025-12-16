@@ -57,18 +57,20 @@
                 <p class="mt-2 text-xs"><b>Fix:</b> Use a local server (e.g., VS Code Live Server) or drag this file to Netlify Drop.</p>
             </div>
 
-            <!-- AdBlocker Warning -->
+            <!-- AdBlocker / Brave Warning -->
             <div id="error-banner" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-6 text-sm text-red-800">
-                <p class="font-bold"><i class="fa-solid fa-ban"></i> Connection Blocked</p>
-                <p>The SDK script failed to load. Please disable your <b>Ad Blocker</b> for this page and refresh.</p>
+                <p class="font-bold"><i class="fa-solid fa-ban"></i> Connection Blocked / Brave Shields</p>
+                <p>Brave Browser or Ad Blockers often modify headers causing <b>CloudFront 400 Errors</b>.</p>
+                <p class="text-xs mt-1"><b>Fix:</b> Click the Lion icon (Brave Shields) -> "Turn OFF Shields" for this site.</p>
             </div>
 
-            <!-- Dashboard Warning -->
+            <!-- Checklist -->
             <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-sm text-blue-800">
-                 <p class="font-bold"><i class="fa-solid fa-circle-info"></i> 400 Bad Request Checklist:</p>
+                 <p class="font-bold"><i class="fa-solid fa-circle-info"></i> Troubleshooting 400 Errors:</p>
                  <ul class="list-disc ml-5 mt-1 space-y-1 text-xs">
-                    <li><b>Domain Whitelist:</b> Ensure <code><script>document.write(window.location.hostname)</script></code> is added to "Allowed Domains" in AppsFlyer Dashboard > App Settings.</li>
-                    <li><b>Content ID:</b> <code>af_purchase</code> often requires <code>af_content_id</code> to be present.</li>
+                    <li><b>Brave/Privacy:</b> Disable "Shields" or "Tracking Protection".</li>
+                    <li><b>Domain Whitelist:</b> Add <code><script>document.write(window.location.hostname)</script></code> to AppsFlyer Dashboard.</li>
+                    <li><b>Missing Data:</b> Purchases MUST have <code>af_content_id</code> (SKU).</li>
                  </ul>
             </div>
 
@@ -78,6 +80,18 @@
             </h2>
             
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 mb-8">
+                <!-- Simple Ping -->
+                <div class="bg-gray-100 p-4 rounded-lg shadow-sm border border-gray-300 hover:shadow-md transition">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-semibold text-gray-800">Minimal Ping</h3>
+                        <span class="text-xs bg-gray-200 text-gray-800 px-2 py-0.5 rounded">Test</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-4">Sends a bare-bones <code>af_login</code> event to test basic connectivity.</p>
+                    <button onclick="triggerEvent('ping')" class="w-full bg-gray-700 text-white py-2 rounded hover:bg-gray-800 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-signal"></i> Send Ping
+                    </button>
+                </div>
+
                 <!-- Purchase -->
                 <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
                     <div class="flex justify-between items-start mb-3">
@@ -87,20 +101,20 @@
                     <div class="space-y-2 text-sm mb-4">
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="text-xs text-gray-500">Revenue (No quotes)</label>
-                                <input type="number" id="purchase-revenue" placeholder="25.50" class="w-full border rounded p-1.5" value="25.50" step="0.01">
+                                <label class="text-xs text-gray-500">Revenue</label>
+                                <input type="number" id="purchase-revenue" class="w-full border rounded p-1.5" value="25.50" step="0.01">
                             </div>
                             <div>
                                 <label class="text-xs text-gray-500">Currency</label>
-                                <input type="text" id="purchase-currency" placeholder="USD" class="w-full border rounded p-1.5" value="USD">
+                                <input type="text" id="purchase-currency" class="w-full border rounded p-1.5" value="USD">
                             </div>
                         </div>
                         
-                        <label class="text-xs text-gray-500">Content ID (Crucial for 200 OK)</label>
-                        <input type="text" id="purchase-content-id" placeholder="sku_12345" class="w-full border rounded p-1.5" value="sku_12345">
+                        <label class="text-xs text-gray-500 font-bold text-blue-600">Content ID (Required)</label>
+                        <input type="text" id="purchase-content-id" placeholder="sku_12345" class="w-full border rounded p-1.5 bg-blue-50" value="sku_12345">
                         
                         <label class="text-xs text-gray-500">Order ID</label>
-                        <input type="text" id="purchase-id" placeholder="ORD-99281" class="w-full border rounded p-1.5" value="ORD-99281">
+                        <input type="text" id="purchase-id" class="w-full border rounded p-1.5" value="ORD-99281">
                     </div>
                     <button onclick="triggerEvent('purchase')" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-cart-shopping"></i> Fire af_purchase
@@ -123,23 +137,6 @@
                     </div>
                     <button onclick="triggerEvent('registration')" class="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-user-plus"></i> Fire af_complete_registration
-                    </button>
-                </div>
-
-                <!-- Login -->
-                <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
-                    <div class="flex justify-between items-start mb-3">
-                        <h3 class="font-semibold text-gray-800">Login</h3>
-                    </div>
-                    <div class="space-y-2 text-sm mb-4">
-                        <label class="text-xs text-gray-500">Method</label>
-                        <select id="login-method" class="w-full border rounded p-1.5">
-                            <option value="email">Email</option>
-                            <option value="biometric">Biometric</option>
-                        </select>
-                    </div>
-                    <button onclick="triggerEvent('login')" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-right-to-bracket"></i> Fire af_login
                     </button>
                 </div>
 
@@ -240,6 +237,11 @@
                 document.getElementById('protocol-warning').classList.remove('hidden');
             }
 
+            // Check for Brave / Adblockers
+            if (navigator.brave || (navigator.userAgent.includes('Brave')) || (navigator.userAgent.includes('Chrome') && !window.chrome)) {
+                 document.getElementById('error-banner').classList.remove('hidden');
+            }
+
             const savedId = localStorage.getItem('af_webapp_id');
             const savedCuid = localStorage.getItem('af_cuid');
             const connText = document.getElementById('conn-text');
@@ -259,7 +261,7 @@
             } else {
                 connText.textContent = "Simulation Mode";
                 connDot.className = "w-2 h-2 rounded-full bg-gray-400";
-                toggleConfig(); // Auto-open config if empty
+                toggleConfig(); 
             }
         }
 
@@ -268,7 +270,6 @@
             logToConsole('SYSTEM', `Initializing SDK with Web App ID: ${appId}`);
             if(cuid) logToConsole('SYSTEM', `Setting Customer User ID (CUID): ${cuid}`);
 
-            // AppsFlyer Snippet
             !function(t,e,n,s,a,c,i,o,p){t.AppsFlyerSdkObject=a,t.AF=t.AF||function(){
             (t.AF.q=t.AF.q||[]).push([Date.now()].concat(Array.prototype.slice.call(arguments)))},
             t.AF.id=t.AF.id||i,t.AF.plugins={},o=e.createElement(n),p=e.getElementsByTagName(n)[0],o.async=1,
@@ -277,7 +278,6 @@
                 state.sdkLoaded = true;
                 state.isInitialized = true;
                 
-                // If CUID exists, set it immediately after load
                 if(cuid) {
                     window.AF('pba', 'setCustomerUserId', cuid);
                 }
@@ -320,12 +320,10 @@
         }
 
         function saveConfig() {
-            // TRIM whitespace which can cause 400s
             const appId = document.getElementById('config-appid').value.trim();
             const cuid = document.getElementById('config-cuid').value.trim();
             const errorMsg = document.getElementById('id-error');
             
-            // Basic Validation for PBA ID (Should look like UUID)
             const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             
             if (appId && !uuidRegex.test(appId)) {
@@ -382,9 +380,12 @@
 
             try {
                 switch(type) {
+                    case 'ping':
+                         eventName = 'af_login';
+                         eventParams = { af_login_method: 'ping_test' };
+                         break;
                     case 'purchase':
                         eventName = 'af_purchase';
-                        // SANITIZATION: Ensure revenue is a number, not string
                         const revenue = parseFloat(document.getElementById('purchase-revenue').value);
                         if(isNaN(revenue)) throw new Error("Revenue must be a valid number");
                         
@@ -394,11 +395,11 @@
                             af_order_id: document.getElementById('purchase-id').value
                         };
                         
-                        // Adding Content ID (Often mandatory for Purchase)
-                        const contentId = document.getElementById('purchase-content-id').value.trim();
-                        if (contentId) {
-                            eventParams.af_content_id = contentId;
-                        }
+                        // FIX: Ensure content_id is ALWAYS present.
+                        let contentId = document.getElementById('purchase-content-id').value.trim();
+                        if (!contentId) contentId = 'default_sku_1'; 
+                        eventParams.af_content_id = contentId;
+                        eventParams.af_content_type = 'product';
                         break;
                     case 'registration':
                         eventName = 'af_complete_registration';
@@ -426,7 +427,6 @@
                 return;
             }
 
-            // Construct payload strictly
             const eventPayload = { 
                 eventType: eventName, 
                 eventValue: eventParams 
@@ -434,15 +434,11 @@
 
             logToConsole('EVENT FIRED', `window.AF('pba', 'event', ${JSON.stringify(eventPayload, null, 2)})`);
 
-            // Execute Live
             if (state.sdkLoaded && window.AF) {
-                // IMPORTANT: AppsFlyer requires non-null values.
-                // If eventValue contains nulls, it might throw 400.
                 window.AF('pba', 'event', eventPayload);
-                
                 logToConsole('STATUS', 'Sent to SDK.', 'text-gray-400 italic');
             } else if (state.webAppId) {
-                 logToConsole('WARNING', 'SDK configured but script not loaded (AdBlock or Init fail).', 'text-yellow-500');
+                 logToConsole('WARNING', 'SDK configured but script not loaded.', 'text-yellow-500');
             } else {
                 logToConsole('SIMULATION', 'Simulation only. No ID configured.', 'text-yellow-500');
             }
