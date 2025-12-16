@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AppsFlyer PBA Event Tester</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        .console-font { font-family: 'Consolas', 'Monaco', 'Courier New', monospace; }
+        .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #1f2937; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+        }
+        .live-pulse { animation: pulse-green 2s infinite; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-paper-plane text-2xl"></i>
+            <div>
+                <h1 class="text-xl font-bold">AppsFlyer PBA Tester</h1>
+                <p class="text-xs text-blue-100">Web SDK Event & Parameter Simulator</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <div id="connection-status" class="bg-blue-800 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2 border border-blue-500">
+                <span id="conn-dot" class="w-2 h-2 rounded-full bg-gray-400"></span>
+                <span id="conn-text">Waiting for Config...</span>
+            </div>
+            <button onclick="toggleConfig()" class="hover:bg-blue-500 p-2 rounded transition">
+                <i class="fa-solid fa-gear"></i> Settings
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+        
+        <!-- Left Panel: Event Triggers -->
+        <div class="w-full md:w-1/2 lg:w-3/5 p-4 md:p-6 overflow-y-auto custom-scroll bg-gray-50">
+            
+            <!-- Protocol Warning (Localhost check) -->
+            <div id="protocol-warning" class="hidden bg-orange-50 border-l-4 border-orange-500 p-4 mb-6 text-sm text-orange-800">
+                <p class="font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Running on Local File (file://)</p>
+                <p>AppsFlyer SDK cannot set cookies on <code>file://</code> paths. This prevents the generation of an Anonymous Device ID and causes <b>400 Bad Request</b> errors.</p>
+                <p class="mt-2 text-xs"><b>Fix:</b> Use a local server (e.g., VS Code Live Server) or drag this file to Netlify Drop.</p>
+            </div>
+
+            <!-- AdBlocker Warning -->
+            <div id="error-banner" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-6 text-sm text-red-800">
+                <p class="font-bold"><i class="fa-solid fa-ban"></i> Connection Blocked</p>
+                <p>The SDK script failed to load. Please disable your <b>Ad Blocker</b> for this page and refresh.</p>
+            </div>
+
+            <!-- Standard Events Grid -->
+            <h2 class="text-gray-700 font-bold mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-bolt text-blue-500"></i> Standard Events
+            </h2>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 mb-8">
+                <!-- Purchase -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-semibold text-gray-800">Purchase</h3>
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Revenue</span>
+                    </div>
+                    <div class="space-y-2 text-sm mb-4">
+                        <input type="number" id="purchase-revenue" placeholder="Revenue" class="w-full border rounded p-1.5" value="25.50">
+                        <input type="text" id="purchase-currency" placeholder="Currency" class="w-full border rounded p-1.5" value="USD">
+                        <input type="text" id="purchase-id" placeholder="Order ID" class="w-full border rounded p-1.5" value="ORD-99281">
+                    </div>
+                    <button onclick="triggerEvent('purchase')" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-cart-shopping"></i> Fire af_purchase
+                    </button>
+                </div>
+
+                <!-- Registration -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-semibold text-gray-800">Registration</h3>
+                        <span class="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">Conversion</span>
+                    </div>
+                    <div class="space-y-2 text-sm mb-4">
+                        <select id="reg-method" class="w-full border rounded p-1.5">
+                            <option value="email">Email</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="google">Google</option>
+                        </select>
+                    </div>
+                    <button onclick="triggerEvent('registration')" class="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-user-plus"></i> Fire af_complete_registration
+                    </button>
+                </div>
+
+                <!-- Login -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-semibold text-gray-800">Login</h3>
+                    </div>
+                    <div class="space-y-2 text-sm mb-4">
+                        <select id="login-method" class="w-full border rounded p-1.5">
+                            <option value="email">Email</option>
+                            <option value="biometric">Biometric</option>
+                        </select>
+                    </div>
+                    <button onclick="triggerEvent('login')" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-right-to-bracket"></i> Fire af_login
+                    </button>
+                </div>
+
+                 <!-- Content View -->
+                 <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-semibold text-gray-800">Content View</h3>
+                    </div>
+                    <div class="space-y-2 text-sm mb-4">
+                        <input type="text" id="content-id" placeholder="Content ID" class="w-full border rounded p-1.5" value="sku_1234">
+                        <input type="text" id="content-type" placeholder="Content Type" class="w-full border rounded p-1.5" value="product">
+                    </div>
+                    <button onclick="triggerEvent('content_view')" class="w-full bg-teal-600 text-white py-2 rounded hover:bg-teal-700 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-eye"></i> Fire af_content_view
+                    </button>
+                </div>
+            </div>
+
+            <!-- Custom Event Builder -->
+            <h2 class="text-gray-700 font-bold mb-4 flex items-center gap-2 border-t pt-6 border-gray-200">
+                <i class="fa-solid fa-code text-blue-500"></i> Custom Event Builder
+            </h2>
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">Event Name</label>
+                        <input type="text" id="custom-name" value="af_level_achieved" class="w-full border rounded p-2 text-sm font-mono">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">JSON Parameters</label>
+                        <textarea id="custom-json" rows="1" class="w-full border rounded p-2 text-sm font-mono console-font" placeholder='{"level": 5, "score": 2500}'>{"level": 5, "score": 2500}</textarea>
+                    </div>
+                </div>
+                <button onclick="triggerEvent('custom')" class="w-full bg-gray-800 text-white py-2 rounded hover:bg-gray-900 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-flask"></i> Fire Custom Event
+                </button>
+            </div>
+
+        </div>
+
+        <!-- Right Panel: Console Log -->
+        <div class="w-full md:w-1/2 lg:w-2/5 bg-gray-900 flex flex-col border-l border-gray-700 shadow-inner">
+            <div class="bg-gray-800 p-3 flex justify-between items-center border-b border-gray-700">
+                <span class="text-gray-300 text-sm font-mono flex items-center gap-2">
+                    <i class="fa-solid fa-terminal"></i> Event Log
+                </span>
+                <button onclick="clearLog()" class="text-xs text-gray-400 hover:text-white hover:bg-gray-700 px-2 py-1 rounded transition">
+                    Clear
+                </button>
+            </div>
+            <div id="console-output" class="flex-1 p-4 overflow-y-auto custom-scroll font-mono text-sm space-y-4 text-green-400">
+                <div class="text-gray-500 italic text-xs">Waiting for events...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div id="config-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl w-96 p-6">
+            <h3 class="text-lg font-bold mb-4">Settings</h3>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Web App ID (PBA)</label>
+                <input type="text" id="config-appid" class="w-full border border-gray-300 rounded p-2 text-sm" placeholder="e.g. 1234-abcd-5678">
+                <p class="text-xs text-gray-500 mt-1">Found in AppsFlyer Dashboard > App Settings.</p>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Customer User ID (CUID)</label>
+                <input type="text" id="config-cuid" class="w-full border border-gray-300 rounded p-2 text-sm" placeholder="e.g. user_12345">
+                <p class="text-xs text-gray-500 mt-1">Required for "Brand Bundles" or Cross-platform logic. <br>Leave empty for anonymous.</p>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="toggleConfig()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancel</button>
+                <button onclick="saveConfig()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save & Reload</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        let state = {
+            webAppId: null,
+            cuid: null,
+            isInitialized: false,
+            sdkLoaded: false
+        };
+
+        // --- Init Logic ---
+        function init() {
+            // Check protocol first
+            if (window.location.protocol === 'file:') {
+                document.getElementById('protocol-warning').classList.remove('hidden');
+            }
+
+            const savedId = localStorage.getItem('af_webapp_id');
+            const savedCuid = localStorage.getItem('af_cuid');
+            const connText = document.getElementById('conn-text');
+            const connDot = document.getElementById('conn-dot');
+
+            if (savedId) {
+                state.webAppId = savedId;
+                state.cuid = savedCuid;
+                
+                document.getElementById('config-appid').value = savedId;
+                if(savedCuid) document.getElementById('config-cuid').value = savedCuid;
+                
+                connText.textContent = "Loading SDK...";
+                connDot.className = "w-2 h-2 rounded-full bg-yellow-400 animate-pulse";
+                
+                initializeSDK(savedId, savedCuid);
+            } else {
+                connText.textContent = "Simulation Mode";
+                connDot.className = "w-2 h-2 rounded-full bg-gray-400";
+            }
+        }
+
+        // --- SDK Initialization ---
+        function initializeSDK(appId, cuid) {
+            logToConsole('SYSTEM', `Initializing SDK with Web App ID: ${appId}`);
+            if(cuid) logToConsole('SYSTEM', `Setting Customer User ID (CUID): ${cuid}`);
+
+            !function(t,e,n,s,a,c,i,o,p){t.AppsFlyerSdkObject=a,t.AF=t.AF||function(){
+            (t.AF.q=t.AF.q||[]).push([Date.now()].concat(Array.prototype.slice.call(arguments)))},
+            t.AF.id=t.AF.id||i,t.AF.plugins={},o=e.createElement(n),p=e.getElementsByTagName(n)[0],o.async=1,
+            
+            o.onload = function() {
+                state.sdkLoaded = true;
+                state.isInitialized = true;
+                
+                // If CUID exists, set it immediately after load
+                if(cuid) {
+                    window.AF('pba', 'setCustomerUserId', cuid);
+                }
+
+                updateStatus(true);
+                logToConsole('SUCCESS', 'AppsFlyer Web SDK script loaded.', 'text-blue-300');
+            };
+
+            o.onerror = function() {
+                updateStatus(false);
+                document.getElementById('error-banner').classList.remove('hidden');
+                logToConsole('ERROR', 'SDK Script failed to load! Check Ad Blocker.', 'text-red-500 font-bold');
+            };
+
+            o.src="https://websdk.appsflyer.com?"+(c.length>0?"st="+c.split(",").sort().join(",")+"&":"")+(i.length>0?"af_id="+i:""),
+            p.parentNode.insertBefore(o,p)}(window,document,"script",0,"AF","pba",{pba: {webAppId: appId}});
+        }
+
+        function updateStatus(isSuccess) {
+            const connText = document.getElementById('conn-text');
+            const connDot = document.getElementById('conn-dot');
+            const statusBadge = document.getElementById('connection-status');
+
+            if (isSuccess) {
+                connText.textContent = "SDK Connected";
+                connDot.className = "w-2 h-2 rounded-full bg-green-400 live-pulse";
+                statusBadge.classList.replace('bg-blue-800', 'bg-green-900');
+                statusBadge.classList.replace('border-blue-500', 'border-green-500');
+            } else {
+                connText.textContent = "Blocked";
+                connDot.className = "w-2 h-2 rounded-full bg-red-500";
+                statusBadge.classList.replace('bg-blue-800', 'bg-red-900');
+                statusBadge.classList.replace('border-blue-500', 'border-red-500');
+            }
+        }
+
+        // --- UI Logic ---
+        function toggleConfig() {
+            document.getElementById('config-modal').classList.toggle('hidden');
+        }
+
+        function saveConfig() {
+            const appId = document.getElementById('config-appid').value.trim();
+            const cuid = document.getElementById('config-cuid').value.trim();
+            
+            if (appId) {
+                localStorage.setItem('af_webapp_id', appId);
+                if(cuid) localStorage.setItem('af_cuid', cuid);
+                else localStorage.removeItem('af_cuid');
+            } else {
+                localStorage.removeItem('af_webapp_id');
+                localStorage.removeItem('af_cuid');
+            }
+            location.reload(); 
+        }
+
+        function logToConsole(type, message, colorClass = 'text-green-400') {
+            const consoleOutput = document.getElementById('console-output');
+            
+            if (consoleOutput.children.length === 1 && consoleOutput.children[0].classList.contains('italic')) {
+                consoleOutput.innerHTML = '';
+            }
+
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'border-b border-gray-800 pb-2 mb-2 animate-fade-in';
+            entry.innerHTML = `
+                <div class="flex gap-2 text-xs text-gray-500 mb-1">
+                    <span>[${timestamp}]</span>
+                    <span class="font-bold border border-gray-600 px-1 rounded text-gray-300">${type}</span>
+                </div>
+                <pre class="${colorClass} whitespace-pre-wrap break-all text-sm">${message}</pre>
+            `;
+            
+            consoleOutput.appendChild(entry);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('console-output').innerHTML = '<div class="text-gray-500 italic text-xs">Waiting for events...</div>';
+        }
+
+        // --- Event Trigger Logic ---
+        function triggerEvent(type) {
+            let eventName = '';
+            let eventParams = {};
+
+            try {
+                switch(type) {
+                    case 'purchase':
+                        eventName = 'af_purchase';
+                        eventParams = {
+                            af_revenue: parseFloat(document.getElementById('purchase-revenue').value) || 0,
+                            af_currency: document.getElementById('purchase-currency').value || 'USD',
+                            af_order_id: document.getElementById('purchase-id').value
+                        };
+                        break;
+                    case 'registration':
+                        eventName = 'af_complete_registration';
+                        eventParams = { af_registration_method: document.getElementById('reg-method').value };
+                        break;
+                    case 'login':
+                        eventName = 'af_login';
+                        eventParams = { af_login_method: document.getElementById('login-method').value };
+                        break;
+                    case 'content_view':
+                        eventName = 'af_content_view';
+                        eventParams = {
+                            af_content_id: document.getElementById('content-id').value,
+                            af_content_type: document.getElementById('content-type').value
+                        };
+                        break;
+                    case 'custom':
+                        eventName = document.getElementById('custom-name').value;
+                        const jsonStr = document.getElementById('custom-json').value;
+                        if (jsonStr && jsonStr.trim() !== '') eventParams = JSON.parse(jsonStr);
+                        break;
+                }
+            } catch (e) {
+                logToConsole('ERROR', `Invalid JSON: ${e.message}`, 'text-red-400');
+                return;
+            }
+
+            // Display code
+            const eventPayload = { eventType: eventName, eventValue: eventParams };
+            logToConsole('EVENT FIRED', `window.AF('pba', 'event', ${JSON.stringify(eventPayload, null, 2)})`);
+
+            // Execute Live
+            if (state.sdkLoaded && window.AF) {
+                window.AF('pba', 'event', eventPayload);
+                logToConsole('STATUS', 'Sent to SDK. Check Network tab (200 OK means success).', 'text-gray-400 italic');
+            } else if (state.webAppId) {
+                 logToConsole('WARNING', 'SDK configured but script not loaded (AdBlock or Init fail).', 'text-yellow-500');
+            } else {
+                logToConsole('SIMULATION', 'Simulation only.', 'text-yellow-500');
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
