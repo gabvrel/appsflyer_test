@@ -156,16 +156,15 @@
                 <p class="text-xs text-gray-400 mb-2">Test exact payloads. Defaults to the structure you confirmed working (cookie + domain).</p>
                 
                 <div class="grid grid-cols-4 gap-2 mb-2">
-                     <div class="col-span-1">
-                        <label class="block text-xs font-semibold mb-1">Method</label>
-                        <select id="raw-method" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs font-mono text-green-400">
-                            <option value="POST">POST</option>
-                            <option value="GET">GET</option>
-                        </select>
-                     </div>
                      <div class="col-span-3">
                         <label class="block text-xs font-semibold mb-1">Endpoint</label>
                         <input type="text" id="raw-url" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs font-mono text-green-400" value="https://wa.appsflyer.com/events?site-id=">
+                     </div>
+                     <div class="col-span-1">
+                        <label class="block text-xs font-semibold mb-1">CORS Check</label>
+                         <button onclick="testPixel()" class="w-full bg-blue-700 text-white py-2 rounded hover:bg-blue-800 transition text-xs font-bold" title="Bypasses CORS">
+                            <i class="fa-solid fa-image"></i> Pixel
+                        </button>
                      </div>
                 </div>
 
@@ -176,7 +175,7 @@
                 
                 <div class="flex gap-2">
                      <button onclick="sendRawRequest()" class="flex-1 bg-orange-600 text-white py-2 rounded hover:bg-orange-700 transition font-bold text-sm flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-paper-plane"></i> Send Request
+                        <i class="fa-solid fa-paper-plane"></i> Send POST
                     </button>
                 </div>
             </div>
@@ -411,30 +410,45 @@
             document.getElementById('console-output').innerHTML = '<div class="text-gray-500 italic text-xs">Waiting for events...</div>';
         }
 
+        // --- PIXEL CHECK (Bypass CORS) ---
+        function testPixel() {
+            const appId = state.webAppId || document.getElementById('config-appid').value;
+            if(!appId) {
+                logToConsole('ERROR', 'No App ID configured', 'text-red-400');
+                return;
+            }
+            
+            // Try to load a favicon or a pixel from appsflyer domain to check connectivity
+            const url = `https://wa.appsflyer.com/favicon.ico?id=${appId}&t=${Date.now()}`;
+            logToConsole('PIXEL_TEST', `Loading image from: ${url}`, 'text-blue-300');
+            
+            const img = new Image();
+            img.onload = () => logToConsole('PIXEL_SUCCESS', 'Connection ESTABLISHED (Image loaded)', 'text-green-400 font-bold');
+            img.onerror = () => logToConsole('PIXEL_FAIL', 'Connection BLOCKED or Image not found. (Check Adblock/Firewall)', 'text-red-500');
+            img.src = url;
+        }
+
         // --- RAW API LOGIC (The Fix) ---
         async function sendRawRequest() {
             const url = document.getElementById('raw-url').value;
-            const method = document.getElementById('raw-method').value;
             const bodyStr = document.getElementById('raw-body').value;
             
-            logToConsole('RAW_SEND', `Method: ${method}\nURL: ${url}\nBody: ${bodyStr}`, 'text-orange-300');
+            logToConsole('RAW_SEND', `Method: POST\nURL: ${url}\nBody: ${bodyStr}`, 'text-orange-300');
 
             try {
-                // IMPORTANT: POST requests to CloudFront often fail 400 if body is empty
-                const options = {
-                    method: method,
-                    headers: { 'Content-Type': 'application/json' }
-                };
-                
-                if (method === 'POST') {
-                    if (!bodyStr || bodyStr.trim() === '') {
-                        logToConsole('ABORT', 'POST Body cannot be empty!', 'text-red-500');
-                        return;
-                    }
-                    options.body = bodyStr;
+                if (!bodyStr || bodyStr.trim() === '') {
+                    logToConsole('ABORT', 'POST Body cannot be empty!', 'text-red-500');
+                    return;
                 }
 
-                const response = await fetch(url, options);
+                // FIX: Add 'credentials: include' because your earlier logs showed cookies were expected
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include', 
+                    body: bodyStr
+                });
+                
                 const text = await response.text();
                 
                 if (response.ok) {
@@ -443,7 +457,7 @@
                     logToConsole('RAW_FAIL', `Status: ${response.status}\nResponse: ${text}`, 'text-red-500 font-bold');
                 }
             } catch (error) {
-                logToConsole('RAW_ERROR', error.message, 'text-red-500');
+                logToConsole('RAW_ERROR', `Network Error: ${error.message}\nNote: Check CORS/AdBlock`, 'text-red-500');
             }
         }
 
