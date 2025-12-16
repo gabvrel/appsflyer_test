@@ -148,24 +148,37 @@
                 </div>
             </div>
 
-            <!-- RAW API TESTER (NEW) -->
+            <!-- RAW API TESTER (UPDATED) -->
             <h2 class="text-gray-700 font-bold mb-4 flex items-center gap-2 border-t pt-6 border-gray-200">
-                <i class="fa-solid fa-wrench text-orange-500"></i> Raw API Tester (Advanced)
+                <i class="fa-solid fa-microscope text-orange-500"></i> Request Laboratory
             </h2>
             <div class="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-700 text-gray-200">
-                <p class="text-xs text-gray-400 mb-2">Use this to test the exact body that worked in your manual tests. If this works but SDK fails, the SDK is generating bad JSON.</p>
+                <p class="text-xs text-gray-400 mb-2">Test exact payloads. Defaults to the structure you confirmed working (cookie + domain).</p>
                 
-                <div class="mb-2">
-                    <label class="block text-xs font-semibold mb-1">Endpoint</label>
-                    <input type="text" id="raw-url" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs font-mono text-green-400" value="https://wa.appsflyer.com/events?site-id=">
+                <div class="grid grid-cols-4 gap-2 mb-2">
+                     <div class="col-span-1">
+                        <label class="block text-xs font-semibold mb-1">Method</label>
+                        <select id="raw-method" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs font-mono text-green-400">
+                            <option value="POST">POST</option>
+                            <option value="GET">GET</option>
+                        </select>
+                     </div>
+                     <div class="col-span-3">
+                        <label class="block text-xs font-semibold mb-1">Endpoint</label>
+                        <input type="text" id="raw-url" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs font-mono text-green-400" value="https://wa.appsflyer.com/events?site-id=">
+                     </div>
                 </div>
+
                 <div class="mb-2">
                     <label class="block text-xs font-semibold mb-1">Body (JSON)</label>
-                    <textarea id="raw-body" rows="4" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs font-mono text-green-400">{"cookie":"TEST-USER-ID","domain":".gabvrel.github.io"}</textarea>
+                    <textarea id="raw-body" rows="4" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs font-mono text-green-400">{"cookie":"22157f00-ac12-4342-a6cc-e79b0f89b827-p","domain":".gabvrel.github.io"}</textarea>
                 </div>
-                <button onclick="sendRawRequest()" class="w-full bg-orange-600 text-white py-2 rounded hover:bg-orange-700 transition font-bold text-sm">
-                    <i class="fa-solid fa-paper-plane"></i> Send Raw POST
-                </button>
+                
+                <div class="flex gap-2">
+                     <button onclick="sendRawRequest()" class="flex-1 bg-orange-600 text-white py-2 rounded hover:bg-orange-700 transition font-bold text-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-paper-plane"></i> Send Request
+                    </button>
+                </div>
             </div>
 
         </div>
@@ -401,20 +414,29 @@
         // --- RAW API LOGIC (The Fix) ---
         async function sendRawRequest() {
             const url = document.getElementById('raw-url').value;
+            const method = document.getElementById('raw-method').value;
             const bodyStr = document.getElementById('raw-body').value;
             
-            logToConsole('RAW_POST', `Sending to: ${url}\nBody: ${bodyStr}`, 'text-orange-300');
+            logToConsole('RAW_SEND', `Method: ${method}\nURL: ${url}\nBody: ${bodyStr}`, 'text-orange-300');
 
             try {
-                // We use fetch() here to bypass the XML monkey patch and the SDK logic
-                // This simulates the user's manual curl/postman test
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: bodyStr
-                });
+                // IMPORTANT: POST requests to CloudFront often fail 400 if body is empty
+                const options = {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' }
+                };
                 
+                if (method === 'POST') {
+                    if (!bodyStr || bodyStr.trim() === '') {
+                        logToConsole('ABORT', 'POST Body cannot be empty!', 'text-red-500');
+                        return;
+                    }
+                    options.body = bodyStr;
+                }
+
+                const response = await fetch(url, options);
                 const text = await response.text();
+                
                 if (response.ok) {
                     logToConsole('RAW_SUCCESS', `Status: ${response.status} OK\nResponse: ${text}`, 'text-green-400 font-bold');
                 } else {
