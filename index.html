@@ -68,9 +68,8 @@
             <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-sm text-blue-800">
                  <p class="font-bold"><i class="fa-solid fa-circle-info"></i> Troubleshooting 400 Errors:</p>
                  <ul class="list-disc ml-5 mt-1 space-y-1 text-xs">
-                    <li><b>Brave/Privacy:</b> Disable "Shields" or "Tracking Protection".</li>
-                    <li><b>Domain Whitelist:</b> Add <code><script>document.write(window.location.hostname)</script></code> to AppsFlyer Dashboard.</li>
-                    <li><b>Missing Data:</b> Purchases MUST have <code>af_content_id</code> (SKU).</li>
+                    <li><b>Domain Whitelist:</b> Ensure <code><script>document.write(window.location.hostname)</script></code> is added to "Allowed Domains" in AppsFlyer Dashboard.</li>
+                    <li><b>Server Response:</b> Check the log on the right. If it says <code>Cannot find app configuration</code>, your ID is wrong. If it says <code>origin not allowed</code>, check dashboard.</li>
                  </ul>
             </div>
 
@@ -83,10 +82,10 @@
                 <!-- Simple Ping -->
                 <div class="bg-gray-100 p-4 rounded-lg shadow-sm border border-gray-300 hover:shadow-md transition">
                     <div class="flex justify-between items-start mb-3">
-                        <h3 class="font-semibold text-gray-800">Minimal Ping</h3>
-                        <span class="text-xs bg-gray-200 text-gray-800 px-2 py-0.5 rounded">Test</span>
+                        <h3 class="font-semibold text-gray-800">Connection Test</h3>
+                        <span class="text-xs bg-gray-200 text-gray-800 px-2 py-0.5 rounded">Ping</span>
                     </div>
-                    <p class="text-xs text-gray-500 mb-4">Sends a bare-bones <code>af_login</code> event to test basic connectivity.</p>
+                    <p class="text-xs text-gray-500 mb-4">Sends a minimal <code>af_login</code> event to check if the server accepts your ID.</p>
                     <button onclick="triggerEvent('ping')" class="w-full bg-gray-700 text-white py-2 rounded hover:bg-gray-800 transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-signal"></i> Send Ping
                     </button>
@@ -230,8 +229,51 @@
             sdkLoaded: false
         };
 
+        // --- Network Interceptor (Monkey Patch XHR to read 400 response body) ---
+        function enableNetworkLogs() {
+            const originalOpen = XMLHttpRequest.prototype.open;
+            const originalSend = XMLHttpRequest.prototype.send;
+
+            XMLHttpRequest.prototype.open = function(method, url) {
+                this._url = url;
+                return originalOpen.apply(this, arguments);
+            };
+
+            XMLHttpRequest.prototype.send = function(body) {
+                // Intercept calls to appsflyer
+                if (this._url && this._url.includes('appsflyer.com')) {
+                    this.addEventListener('load', function() {
+                        const status = this.status;
+                        const response = this.responseText;
+                        let color = status >= 200 && status < 300 ? 'text-green-300' : 'text-red-400';
+                        
+                        // Parse error message if possible to show user friendly text
+                        let msg = `Server Response: ${status}`;
+                        try {
+                            if(response) {
+                                // Try to extract meaningful error message
+                                let cleanResponse = response;
+                                try {
+                                    const json = JSON.parse(response);
+                                    if(json.error) cleanResponse = `Error: ${JSON.stringify(json.error)}`;
+                                    else if (json.message) cleanResponse = `Msg: ${json.message}`;
+                                } catch(e) {}
+                                msg += `\nBody: ${cleanResponse}`;
+                            }
+                        } catch(e) { msg += `\n${response}`; }
+
+                        const type = status >= 200 && status < 300 ? 'SUCCESS' : 'FAILURE';
+                        logToConsole(type, msg, color);
+                    });
+                }
+                return originalSend.apply(this, arguments);
+            };
+        }
+
         // --- Init Logic ---
         function init() {
+            enableNetworkLogs();
+
             // Check protocol first
             if (window.location.protocol === 'file:') {
                 document.getElementById('protocol-warning').classList.remove('hidden');
@@ -436,7 +478,7 @@
 
             if (state.sdkLoaded && window.AF) {
                 window.AF('pba', 'event', eventPayload);
-                logToConsole('STATUS', 'Sent to SDK.', 'text-gray-400 italic');
+                // Note: The success/fail message will now come from the interceptor in enableNetworkLogs
             } else if (state.webAppId) {
                  logToConsole('WARNING', 'SDK configured but script not loaded.', 'text-yellow-500');
             } else {
