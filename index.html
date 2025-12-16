@@ -76,9 +76,14 @@
                         <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Revenue</span>
                     </div>
                     <div class="space-y-2 text-sm mb-4">
-                        <input type="number" id="purchase-revenue" placeholder="Revenue" class="w-full border rounded p-1.5" value="25.50">
-                        <input type="text" id="purchase-currency" placeholder="Currency" class="w-full border rounded p-1.5" value="USD">
-                        <input type="text" id="purchase-id" placeholder="Order ID" class="w-full border rounded p-1.5" value="ORD-99281">
+                        <label class="text-xs text-gray-500">Revenue (Number)</label>
+                        <input type="number" id="purchase-revenue" placeholder="25.50" class="w-full border rounded p-1.5" value="25.50" step="0.01">
+                        
+                        <label class="text-xs text-gray-500">Currency (ISO 4217)</label>
+                        <input type="text" id="purchase-currency" placeholder="USD" class="w-full border rounded p-1.5" value="USD">
+                        
+                        <label class="text-xs text-gray-500">Order ID</label>
+                        <input type="text" id="purchase-id" placeholder="ORD-99281" class="w-full border rounded p-1.5" value="ORD-99281">
                     </div>
                     <button onclick="triggerEvent('purchase')" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-cart-shopping"></i> Fire af_purchase
@@ -92,6 +97,7 @@
                         <span class="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">Conversion</span>
                     </div>
                     <div class="space-y-2 text-sm mb-4">
+                        <label class="text-xs text-gray-500">Method</label>
                         <select id="reg-method" class="w-full border rounded p-1.5">
                             <option value="email">Email</option>
                             <option value="facebook">Facebook</option>
@@ -109,6 +115,7 @@
                         <h3 class="font-semibold text-gray-800">Login</h3>
                     </div>
                     <div class="space-y-2 text-sm mb-4">
+                        <label class="text-xs text-gray-500">Method</label>
                         <select id="login-method" class="w-full border rounded p-1.5">
                             <option value="email">Email</option>
                             <option value="biometric">Biometric</option>
@@ -125,8 +132,11 @@
                         <h3 class="font-semibold text-gray-800">Content View</h3>
                     </div>
                     <div class="space-y-2 text-sm mb-4">
-                        <input type="text" id="content-id" placeholder="Content ID" class="w-full border rounded p-1.5" value="sku_1234">
-                        <input type="text" id="content-type" placeholder="Content Type" class="w-full border rounded p-1.5" value="product">
+                        <label class="text-xs text-gray-500">Content ID (SKU)</label>
+                        <input type="text" id="content-id" placeholder="sku_1234" class="w-full border rounded p-1.5" value="sku_1234">
+                        
+                        <label class="text-xs text-gray-500">Content Type</label>
+                        <input type="text" id="content-type" placeholder="product" class="w-full border rounded p-1.5" value="product">
                     </div>
                     <button onclick="triggerEvent('content_view')" class="w-full bg-teal-600 text-white py-2 rounded hover:bg-teal-700 transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-eye"></i> Fire af_content_view
@@ -178,15 +188,16 @@
             <h3 class="text-lg font-bold mb-4">Settings</h3>
             
             <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-700 mb-1">Web App ID (PBA)</label>
-                <input type="text" id="config-appid" class="w-full border border-gray-300 rounded p-2 text-sm" placeholder="e.g. 1234-abcd-5678">
-                <p class="text-xs text-gray-500 mt-1">Found in AppsFlyer Dashboard > App Settings.</p>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Web App ID (PBA ID)</label>
+                <input type="text" id="config-appid" class="w-full border border-gray-300 rounded p-2 text-sm" placeholder="e.g. 1111aaaa-22bb-33cc-44dd-5555eeee6666">
+                <p id="id-error" class="text-xs text-red-500 mt-1 hidden">Must be a PBA GUID (not a numeric App ID)</p>
+                <p class="text-xs text-gray-500 mt-1">Found in AppsFlyer Dashboard > App Settings. <br>Format: UUID (e.g., <code>a1b2c3d4-...</code>)</p>
             </div>
 
             <div class="mb-4">
                 <label class="block text-sm font-semibold text-gray-700 mb-1">Customer User ID (CUID)</label>
                 <input type="text" id="config-cuid" class="w-full border border-gray-300 rounded p-2 text-sm" placeholder="e.g. user_12345">
-                <p class="text-xs text-gray-500 mt-1">Required for "Brand Bundles" or Cross-platform logic. <br>Leave empty for anonymous.</p>
+                <p class="text-xs text-gray-500 mt-1">Required for Cross-platform logic. Leave empty for anonymous.</p>
             </div>
 
             <div class="flex justify-end gap-2 mt-6">
@@ -231,6 +242,7 @@
             } else {
                 connText.textContent = "Simulation Mode";
                 connDot.className = "w-2 h-2 rounded-full bg-gray-400";
+                toggleConfig(); // Auto-open config if empty
             }
         }
 
@@ -239,6 +251,7 @@
             logToConsole('SYSTEM', `Initializing SDK with Web App ID: ${appId}`);
             if(cuid) logToConsole('SYSTEM', `Setting Customer User ID (CUID): ${cuid}`);
 
+            // AppsFlyer Snippet
             !function(t,e,n,s,a,c,i,o,p){t.AppsFlyerSdkObject=a,t.AF=t.AF||function(){
             (t.AF.q=t.AF.q||[]).push([Date.now()].concat(Array.prototype.slice.call(arguments)))},
             t.AF.id=t.AF.id||i,t.AF.plugins={},o=e.createElement(n),p=e.getElementsByTagName(n)[0],o.async=1,
@@ -292,7 +305,22 @@
         function saveConfig() {
             const appId = document.getElementById('config-appid').value.trim();
             const cuid = document.getElementById('config-cuid').value.trim();
+            const errorMsg = document.getElementById('id-error');
             
+            // Basic Validation for PBA ID (Should look like UUID)
+            // Regex checks for standard UUID format
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            
+            if (appId && !uuidRegex.test(appId)) {
+                errorMsg.classList.remove('hidden');
+                errorMsg.textContent = "Warning: This does not look like a Web PBA ID (UUID). 400 Errors likely.";
+                if(!confirm("The ID format looks wrong (usually should be a UUID like a1b2-c3d4...). Continue anyway?")) {
+                    return;
+                }
+            } else {
+                errorMsg.classList.add('hidden');
+            }
+
             if (appId) {
                 localStorage.setItem('af_webapp_id', appId);
                 if(cuid) localStorage.setItem('af_cuid', cuid);
@@ -339,8 +367,12 @@
                 switch(type) {
                     case 'purchase':
                         eventName = 'af_purchase';
+                        // SANITIZATION: Ensure revenue is a number, not string
+                        const revenue = parseFloat(document.getElementById('purchase-revenue').value);
+                        if(isNaN(revenue)) throw new Error("Revenue must be a valid number");
+                        
                         eventParams = {
-                            af_revenue: parseFloat(document.getElementById('purchase-revenue').value) || 0,
+                            af_revenue: revenue,
                             af_currency: document.getElementById('purchase-currency').value || 'USD',
                             af_order_id: document.getElementById('purchase-id').value
                         };
@@ -367,22 +399,30 @@
                         break;
                 }
             } catch (e) {
-                logToConsole('ERROR', `Invalid JSON: ${e.message}`, 'text-red-400');
+                logToConsole('ERROR', `Validation Failed: ${e.message}`, 'text-red-400');
                 return;
             }
 
-            // Display code
-            const eventPayload = { eventType: eventName, eventValue: eventParams };
+            // Construct payload strictly
+            const eventPayload = { 
+                eventType: eventName, 
+                eventValue: eventParams 
+            };
+
             logToConsole('EVENT FIRED', `window.AF('pba', 'event', ${JSON.stringify(eventPayload, null, 2)})`);
 
             // Execute Live
             if (state.sdkLoaded && window.AF) {
+                // IMPORTANT: AppsFlyer requires non-null values.
+                // If eventValue contains nulls, it might throw 400.
                 window.AF('pba', 'event', eventPayload);
-                logToConsole('STATUS', 'Sent to SDK. Check Network tab (200 OK means success).', 'text-gray-400 italic');
+                
+                logToConsole('STATUS', 'Sent to SDK.', 'text-gray-400 italic');
+                logToConsole('TIP', 'If you get 400 Bad Request:\n1. Check the ID in Settings (Must be UUID)\n2. Ensure params match Standard Event specs.', 'text-yellow-500 text-xs');
             } else if (state.webAppId) {
                  logToConsole('WARNING', 'SDK configured but script not loaded (AdBlock or Init fail).', 'text-yellow-500');
             } else {
-                logToConsole('SIMULATION', 'Simulation only.', 'text-yellow-500');
+                logToConsole('SIMULATION', 'Simulation only. No ID configured.', 'text-yellow-500');
             }
         }
 
