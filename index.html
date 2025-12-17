@@ -243,6 +243,15 @@
             transmissionMode: 'sdk' // 'sdk' or 'direct'
         };
 
+        // --- Utils ---
+        function generateUUID() {
+            // AppsFlyer standard UUID v4 format
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
         function toggleTransmission(mode) {
             state.transmissionMode = mode;
             if(mode === 'direct') {
@@ -265,7 +274,6 @@
             };
 
             XMLHttpRequest.prototype.send = function(body) {
-                // Intercept calls to appsflyer
                 if (this._url && this._url.includes('appsflyer.com')) {
                     this.addEventListener('load', function() {
                         const status = this.status;
@@ -286,7 +294,6 @@
                         } catch(e) { msg += `\n${response}`; }
 
                         const type = status >= 200 && status < 300 ? 'SUCCESS' : 'FAILURE';
-                        // Only log SDK network events if we are in SDK mode to avoid confusion
                         if(state.transmissionMode === 'sdk') {
                              logToConsole(type, msg, color);
                         }
@@ -300,7 +307,6 @@
         function init() {
             enableNetworkLogs();
 
-            // Check protocol first
             if (window.location.protocol === 'file:') {
                 document.getElementById('protocol-warning').classList.remove('hidden');
             }
@@ -325,7 +331,6 @@
                 connText.textContent = "Loading SDK...";
                 connDot.className = "w-2 h-2 rounded-full bg-yellow-400 animate-pulse";
                 
-                // Pre-fill raw tester with correct ID
                 rawUrlInput.value = `https://wa.appsflyer.com/events?site-id=${savedId}`;
                 
                 initializeSDK(savedId, savedCuid);
@@ -435,18 +440,14 @@
             document.getElementById('console-output').innerHTML = '<div class="text-gray-500 italic text-xs">Waiting for events...</div>';
         }
 
-        // --- PIXEL CHECK (Bypass CORS) ---
         function testPixel() {
             const appId = state.webAppId || document.getElementById('config-appid').value;
             if(!appId) {
                 logToConsole('ERROR', 'No App ID configured', 'text-red-400');
                 return;
             }
-            
-            // Try to load a favicon or a pixel from appsflyer domain to check connectivity
             const url = `https://wa.appsflyer.com/favicon.ico?id=${appId}&t=${Date.now()}`;
             logToConsole('PIXEL_TEST', `Loading image from: ${url}`, 'text-blue-300');
-            
             const img = new Image();
             img.onload = () => logToConsole('PIXEL_SUCCESS', 'Connection ESTABLISHED (Image loaded)', 'text-green-400 font-bold');
             img.onerror = () => logToConsole('PIXEL_FAIL', 'Connection BLOCKED or Image not found. (Check Adblock/Firewall)', 'text-red-500');
@@ -461,36 +462,34 @@
                 return;
              }
 
-             // AppsFlyer WA endpoint standard params
-             // We mimic the structure but cleaner
-             
-             // CRITICAL: Checkbox to test Object vs String issue
              const sendAsObject = document.getElementById('chk-obj-val').checked;
              let eventValueToSend = eventParams;
              if (!sendAsObject) {
                  eventValueToSend = JSON.stringify(eventParams);
              }
 
+             // FIX: Valid UUID + URL + Referrer
              const payload = {
                  data: {
                      eventType: eventName,
                      eventValue: eventValueToSend,
                      webAppId: appId,
-                     afWebUserId: 'test-user-' + Date.now() + '-p',
+                     afWebUserId: generateUUID(), // MUST BE VALID UUID
+                     url: window.location.href, // REQUIRED
                      timestamp: Date.now()
                  },
-                 // Add simplified meta to pass validation
                  meta: {
                      userAgent: navigator.userAgent,
                      languageKey: navigator.language || 'en',
                      screenResolutionWidth: window.screen.width,
                      screenResolutionHeight: window.screen.height,
-                     cookieEnabled: navigator.cookieEnabled
+                     cookieEnabled: navigator.cookieEnabled,
+                     referrer: document.referrer || window.location.href // REQUIRED
                  }
              };
 
              const url = `https://wa.appsflyer.com/events?site-id=${appId}`;
-             logToConsole('DIRECT_SEND', `Sending via FETCH (No SDK)...\nURL: ${url}\nEventValue Type: ${sendAsObject ? 'Object' : 'String'}`, 'text-purple-300');
+             logToConsole('DIRECT_SEND', `Sending via FETCH (Corrected ID)...\nURL: ${url}`, 'text-purple-300');
              
              try {
                 const response = await fetch(url, {
