@@ -185,15 +185,25 @@
         <!-- Right Panel: Console Log -->
         <div class="w-full md:w-1/2 lg:w-2/5 bg-gray-900 flex flex-col border-l border-gray-700 shadow-inner">
             <div class="bg-gray-800 p-3 flex justify-between items-center border-b border-gray-700">
-                <span class="text-gray-300 text-sm font-mono flex items-center gap-2">
-                    <i class="fa-solid fa-terminal"></i> Event Log
-                </span>
-                <button onclick="clearLog()" class="text-xs text-gray-400 hover:text-white hover:bg-gray-700 px-2 py-1 rounded transition">
-                    Clear
-                </button>
+                <div class="flex items-center gap-2">
+                    <span class="text-gray-300 text-sm font-mono"><i class="fa-solid fa-terminal"></i> Log</span>
+                    <!-- Transmission Toggle -->
+                    <select id="transmission-mode" onchange="toggleTransmission(this.value)" class="bg-gray-700 text-white text-xs border border-gray-600 rounded px-1 py-0.5">
+                        <option value="sdk">Mode: SDK (Standard)</option>
+                        <option value="direct">Mode: Direct API (Fetch)</option>
+                    </select>
+                </div>
+                <button onclick="clearLog()" class="text-xs text-gray-400 hover:text-white hover:bg-gray-700 px-2 py-1 rounded transition">Clear</button>
             </div>
+            
             <div id="console-output" class="flex-1 p-4 overflow-y-auto custom-scroll font-mono text-sm space-y-4 text-green-400">
                 <div class="text-gray-500 italic text-xs">Waiting for events...</div>
+            </div>
+
+            <!-- Direct Mode Options -->
+            <div id="direct-options" class="hidden p-2 bg-gray-800 border-t border-gray-700 text-xs text-gray-400 flex items-center gap-2">
+                <input type="checkbox" id="chk-obj-val" checked>
+                <label for="chk-obj-val">Send eventValue as Object (Uncheck to send String)</label>
             </div>
         </div>
     </div>
@@ -229,8 +239,20 @@
             webAppId: null,
             cuid: null,
             isInitialized: false,
-            sdkLoaded: false
+            sdkLoaded: false,
+            transmissionMode: 'sdk' // 'sdk' or 'direct'
         };
+
+        function toggleTransmission(mode) {
+            state.transmissionMode = mode;
+            if(mode === 'direct') {
+                document.getElementById('direct-options').classList.remove('hidden');
+                logToConsole('SYSTEM', 'Switched to Direct API Mode. Bypassing SDK script.', 'text-purple-400');
+            } else {
+                document.getElementById('direct-options').classList.add('hidden');
+                logToConsole('SYSTEM', 'Switched to SDK Mode.', 'text-blue-300');
+            }
+        }
 
         // --- Network Interceptor ---
         function enableNetworkLogs() {
@@ -250,7 +272,7 @@
                         const response = this.responseText;
                         let color = status >= 200 && status < 300 ? 'text-green-300' : 'text-red-400';
                         
-                        let msg = `Server Response: ${status}`;
+                        let msg = `SDK Response: ${status}`;
                         try {
                             if(response) {
                                 let cleanResponse = response;
@@ -264,7 +286,10 @@
                         } catch(e) { msg += `\n${response}`; }
 
                         const type = status >= 200 && status < 300 ? 'SUCCESS' : 'FAILURE';
-                        logToConsole(type, msg, color);
+                        // Only log SDK network events if we are in SDK mode to avoid confusion
+                        if(state.transmissionMode === 'sdk') {
+                             logToConsole(type, msg, color);
+                        }
                     });
                 }
                 return originalSend.apply(this, arguments);
@@ -428,7 +453,66 @@
             img.src = url;
         }
 
-        // --- RAW API LOGIC (The Fix) ---
+        // --- DIRECT API LOGIC (The Fix) ---
+        async function triggerEventDirect(eventName, eventParams) {
+             const appId = state.webAppId;
+             if(!appId) {
+                logToConsole('ERROR', 'No App ID', 'text-red-400');
+                return;
+             }
+
+             // AppsFlyer WA endpoint standard params
+             // We mimic the structure but cleaner
+             
+             // CRITICAL: Checkbox to test Object vs String issue
+             const sendAsObject = document.getElementById('chk-obj-val').checked;
+             let eventValueToSend = eventParams;
+             if (!sendAsObject) {
+                 eventValueToSend = JSON.stringify(eventParams);
+             }
+
+             const payload = {
+                 data: {
+                     eventType: eventName,
+                     eventValue: eventValueToSend,
+                     webAppId: appId,
+                     afWebUserId: 'test-user-' + Date.now() + '-p',
+                     timestamp: Date.now()
+                 },
+                 // Add simplified meta to pass validation
+                 meta: {
+                     userAgent: navigator.userAgent,
+                     languageKey: navigator.language || 'en',
+                     screenResolutionWidth: window.screen.width,
+                     screenResolutionHeight: window.screen.height,
+                     cookieEnabled: navigator.cookieEnabled
+                 }
+             };
+
+             const url = `https://wa.appsflyer.com/events?site-id=${appId}`;
+             logToConsole('DIRECT_SEND', `Sending via FETCH (No SDK)...\nURL: ${url}\nEventValue Type: ${sendAsObject ? 'Object' : 'String'}`, 'text-purple-300');
+             
+             try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include', 
+                    body: JSON.stringify(payload)
+                });
+                
+                const text = await response.text();
+                
+                if (response.ok) {
+                    logToConsole('DIRECT_SUCCESS', `Status: ${response.status}\nServer accepted payload!`, 'text-green-400 font-bold');
+                } else {
+                    logToConsole('DIRECT_FAIL', `Status: ${response.status}\nError: ${text}`, 'text-red-500 font-bold');
+                }
+             } catch (e) {
+                 logToConsole('DIRECT_ERROR', e.message, 'text-red-500');
+             }
+        }
+
+        // --- RAW API LOGIC (Manual) ---
         async function sendRawRequest() {
             const url = document.getElementById('raw-url').value;
             const bodyStr = document.getElementById('raw-body').value;
@@ -441,7 +525,6 @@
                     return;
                 }
 
-                // FIX: Add 'credentials: include' because your earlier logs showed cookies were expected
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -469,7 +552,6 @@
             try {
                 switch(type) {
                     case 'ping':
-                         // CHANGED: Use a simple custom event name to avoid strict validation of af_login
                          eventName = 'custom_ping_test';
                          eventParams = { status: 'alive' };
                          break;
@@ -515,12 +597,19 @@
                 return;
             }
 
+            // --- BRANCH LOGIC ---
+            if (state.transmissionMode === 'direct') {
+                triggerEventDirect(eventName, eventParams);
+                return;
+            }
+
+            // SDK Mode
             const eventPayload = { 
                 eventType: eventName, 
                 eventValue: eventParams 
             };
 
-            logToConsole('EVENT FIRED', `window.AF('pba', 'event', ${JSON.stringify(eventPayload, null, 2)})`);
+            logToConsole('EVENT FIRED (SDK)', `window.AF('pba', 'event', ${JSON.stringify(eventPayload, null, 2)})`);
 
             if (state.sdkLoaded && window.AF) {
                 window.AF('pba', 'event', eventPayload);
