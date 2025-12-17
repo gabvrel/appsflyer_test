@@ -64,7 +64,7 @@
                 <p class="text-xs mt-1"><b>Fix:</b> Click the Lion icon (Brave Shields) -> "Turn OFF Shields" for this site.</p>
             </div>
 
-            <!-- ANDROID LOG REPLICATOR (NEW) -->
+            <!-- ANDROID LOG REPLICATOR -->
             <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 text-sm text-green-900">
                 <h3 class="font-bold flex items-center gap-2">
                     <i class="fa-brands fa-android text-xl"></i> Android Log Replicator
@@ -175,8 +175,8 @@
                     <span class="text-gray-300 text-sm font-mono"><i class="fa-solid fa-terminal"></i> Log</span>
                     <!-- Transmission Toggle -->
                     <select id="transmission-mode" onchange="toggleTransmission(this.value)" class="bg-gray-700 text-white text-xs border border-gray-600 rounded px-1 py-0.5">
-                        <option value="sdk">Mode: SDK (Standard)</option>
                         <option value="direct">Mode: Direct API (Fetch)</option>
+                        <option value="sdk">Mode: SDK (Standard)</option>
                     </select>
                 </div>
                 <button onclick="clearLog()" class="text-xs text-gray-400 hover:text-white hover:bg-gray-700 px-2 py-1 rounded transition">Clear</button>
@@ -187,9 +187,22 @@
             </div>
 
             <!-- Direct Mode Options -->
-            <div id="direct-options" class="hidden p-2 bg-gray-800 border-t border-gray-700 text-xs text-gray-400 flex items-center gap-2">
-                <input type="checkbox" id="chk-obj-val" checked>
-                <label for="chk-obj-val">Send eventValue as Object (Uncheck to send String)</label>
+            <div id="direct-options" class="p-2 bg-gray-800 border-t border-gray-700 text-xs text-gray-400 space-y-2">
+                 <div class="flex items-center gap-2">
+                    <span class="font-bold text-blue-300">Protocol:</span>
+                    <label class="inline-flex items-center">
+                        <input type="radio" name="protocol-type" value="simple" checked onchange="logToConsole('SYSTEM', 'Protocol set to Simplified (Matches your manual test)', 'text-blue-300')">
+                        <span class="ml-1">Simplified (Flat)</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="radio" name="protocol-type" value="standard" onchange="logToConsole('SYSTEM', 'Protocol set to SDK Internal (data/meta)', 'text-blue-300')">
+                        <span class="ml-1">SDK Internal</span>
+                    </label>
+                 </div>
+                 <div class="flex items-center gap-2">
+                    <input type="checkbox" id="chk-obj-val" checked>
+                    <label for="chk-obj-val">Send eventValue as Object (Uncheck for String)</label>
+                 </div>
             </div>
         </div>
     </div>
@@ -226,7 +239,7 @@
             cuid: null,
             isInitialized: false,
             sdkLoaded: false,
-            transmissionMode: 'sdk' // 'sdk' or 'direct'
+            transmissionMode: 'direct' // Default to direct since SDK fails
         };
 
         // --- Utils ---
@@ -305,6 +318,11 @@
             const connText = document.getElementById('conn-text');
             const connDot = document.getElementById('conn-dot');
             const rawUrlInput = document.getElementById('raw-url');
+
+            // Initialize mode selection in UI
+            document.getElementById('transmission-mode').value = state.transmissionMode;
+            if (state.transmissionMode === 'direct') document.getElementById('direct-options').classList.remove('hidden');
+
 
             if (savedId) {
                 state.webAppId = savedId;
@@ -439,7 +457,7 @@
             img.src = url;
         }
 
-        // --- ANDROID REPLICATOR Logic (The Fix) ---
+        // --- ANDROID REPLICATOR Logic ---
         function triggerAndroidReplica() {
             const eventName = document.getElementById('android-event-name').value;
             let jsonBody = document.getElementById('android-json-body').value;
@@ -486,33 +504,51 @@
                 return;
              }
 
+             const protocol = document.querySelector('input[name="protocol-type"]:checked').value;
              const sendAsObject = document.getElementById('chk-obj-val').checked;
              let eventValueToSend = eventParams;
+             
              if (!sendAsObject) {
                  eventValueToSend = JSON.stringify(eventParams);
              }
 
-             const payload = {
-                 data: {
+             let payload = {};
+
+             if (protocol === 'simple') {
+                 // SIMPLIFIED PROTOCOL (Matches user's successful manual test)
+                 // This structure flattens the hierarchy
+                 payload = {
                      eventType: eventName,
                      eventValue: eventValueToSend,
-                     webAppId: appId,
-                     afWebUserId: generateUUID(),
-                     url: window.location.href,
+                     // "cookie" acts as the User ID in this simplified endpoint structure
+                     cookie: generateUUID() + '-p', // Adding suffix as seen in user trace
+                     domain: window.location.hostname || 'localhost',
                      timestamp: Date.now()
-                 },
-                 meta: {
-                     userAgent: navigator.userAgent,
-                     languageKey: navigator.language || 'en',
-                     screenResolutionWidth: window.screen.width,
-                     screenResolutionHeight: window.screen.height,
-                     cookieEnabled: navigator.cookieEnabled,
-                     referrer: document.referrer || window.location.href
-                 }
-             };
+                 };
+             } else {
+                 // STANDARD/SDK INTERNAL PROTOCOL
+                 payload = {
+                     data: {
+                         eventType: eventName,
+                         eventValue: eventValueToSend,
+                         webAppId: appId,
+                         afWebUserId: generateUUID(),
+                         url: window.location.href,
+                         timestamp: Date.now()
+                     },
+                     meta: {
+                         userAgent: navigator.userAgent,
+                         languageKey: navigator.language || 'en',
+                         screenResolutionWidth: window.screen.width,
+                         screenResolutionHeight: window.screen.height,
+                         cookieEnabled: navigator.cookieEnabled,
+                         referrer: document.referrer || window.location.href
+                     }
+                 };
+             }
 
              const url = `https://wa.appsflyer.com/events?site-id=${appId}`;
-             logToConsole('DIRECT_SEND', `Sending Replicated Event...\nEvent: ${eventName}\nPayload: ${JSON.stringify(eventParams)}`, 'text-purple-300');
+             logToConsole('DIRECT_SEND', `Sending (${protocol.toUpperCase()} PROTOCOL)...\nPayload Keys: ${Object.keys(payload).join(', ')}`, 'text-purple-300');
              
              try {
                 const response = await fetch(url, {
