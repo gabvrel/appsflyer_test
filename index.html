@@ -57,33 +57,19 @@
                 <p class="mt-2 text-xs"><b>Fix:</b> Use a local server (e.g., VS Code Live Server) or drag this file to Netlify Drop.</p>
             </div>
 
-            <!-- AdBlocker / Brave Warning -->
+            <!-- AdBlocker Warning -->
             <div id="error-banner" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-6 text-sm text-red-800">
-                <p class="font-bold"><i class="fa-solid fa-ban"></i> Connection Blocked / Brave Shields</p>
-                <p>Brave Browser or Ad Blockers often modify headers causing <b>CloudFront 400 Errors</b>.</p>
-                <p class="text-xs mt-1"><b>Fix:</b> Click the Lion icon (Brave Shields) -> "Turn OFF Shields" for this site.</p>
+                <p class="font-bold"><i class="fa-solid fa-ban"></i> Connection Blocked</p>
+                <p>The SDK script failed to load. Please disable your <b>Ad Blocker</b> for this page and refresh.</p>
             </div>
 
-            <!-- ANDROID LOG REPLICATOR -->
-            <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 text-sm text-green-900">
-                <h3 class="font-bold flex items-center gap-2">
-                    <i class="fa-brands fa-android text-xl"></i> Android Log Replicator
-                </h3>
-                <p class="mb-2 text-xs">The Android logs show you use <code>amount</code>. Web SDK requires <code>af_revenue</code>. This tool fixes it automatically.</p>
-                
-                <div class="bg-white p-3 rounded border border-green-200 shadow-sm">
-                    <div class="mb-2">
-                        <label class="block text-xs font-semibold mb-1">Event Name (from log)</label>
-                        <input type="text" id="android-event-name" value="af_purchase" class="w-full border rounded p-1.5 text-sm font-mono">
-                    </div>
-                    <div class="mb-2">
-                        <label class="block text-xs font-semibold mb-1">Android JSON Body</label>
-                        <textarea id="android-json-body" rows="3" class="w-full border rounded p-1.5 text-xs font-mono">{"country":"Brazil","amount":0,"currency":"USD","plan_name":"Brazil - 7 Days Unlimited"}</textarea>
-                    </div>
-                    <button onclick="triggerAndroidReplica()" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition font-bold flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-wand-magic-sparkles"></i> Fix & Fire Replicated Event
-                    </button>
-                </div>
+            <!-- Dashboard Warning -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-sm text-blue-800">
+                 <p class="font-bold"><i class="fa-solid fa-circle-info"></i> 400 Bad Request Checklist:</p>
+                 <ul class="list-disc ml-5 mt-1 space-y-1 text-xs">
+                    <li><b>Domain Whitelist:</b> Ensure <code><script>document.write(window.location.hostname)</script></code> is added to "Allowed Domains" in AppsFlyer Dashboard > App Settings.</li>
+                    <li><b>Content ID:</b> <code>af_purchase</code> often requires <code>af_content_id</code> to be present.</li>
+                 </ul>
             </div>
 
             <!-- Standard Events Grid -->
@@ -92,18 +78,6 @@
             </h2>
             
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 mb-8">
-                <!-- Simple Ping -->
-                <div class="bg-gray-100 p-4 rounded-lg shadow-sm border border-gray-300 hover:shadow-md transition">
-                    <div class="flex justify-between items-start mb-3">
-                        <h3 class="font-semibold text-gray-800">Connection Test</h3>
-                        <span class="text-xs bg-gray-200 text-gray-800 px-2 py-0.5 rounded">Ping</span>
-                    </div>
-                    <p class="text-xs text-gray-500 mb-4">Sends a minimal custom event to check connectivity without strict validation.</p>
-                    <button onclick="triggerEvent('ping')" class="w-full bg-gray-700 text-white py-2 rounded hover:bg-gray-800 transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-signal"></i> Send Ping
-                    </button>
-                </div>
-
                 <!-- Purchase -->
                 <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
                     <div class="flex justify-between items-start mb-3">
@@ -113,57 +87,98 @@
                     <div class="space-y-2 text-sm mb-4">
                         <div class="grid grid-cols-2 gap-2">
                             <div>
-                                <label class="text-xs text-gray-500">Revenue</label>
-                                <input type="number" id="purchase-revenue" class="w-full border rounded p-1.5" value="25.50" step="0.01">
+                                <label class="text-xs text-gray-500">Revenue (No quotes)</label>
+                                <input type="number" id="purchase-revenue" placeholder="25.50" class="w-full border rounded p-1.5" value="25.50" step="0.01">
                             </div>
                             <div>
                                 <label class="text-xs text-gray-500">Currency</label>
-                                <input type="text" id="purchase-currency" class="w-full border rounded p-1.5" value="USD">
+                                <input type="text" id="purchase-currency" placeholder="USD" class="w-full border rounded p-1.5" value="USD">
                             </div>
                         </div>
                         
-                        <label class="text-xs text-gray-500 font-bold text-blue-600">Content ID (Required)</label>
-                        <input type="text" id="purchase-content-id" placeholder="sku_12345" class="w-full border rounded p-1.5 bg-blue-50" value="sku_12345">
+                        <label class="text-xs text-gray-500">Content ID (Crucial for 200 OK)</label>
+                        <input type="text" id="purchase-content-id" placeholder="sku_12345" class="w-full border rounded p-1.5" value="sku_12345">
                         
                         <label class="text-xs text-gray-500">Order ID</label>
-                        <input type="text" id="purchase-id" class="w-full border rounded p-1.5" value="ORD-99281">
+                        <input type="text" id="purchase-id" placeholder="ORD-99281" class="w-full border rounded p-1.5" value="ORD-99281">
                     </div>
                     <button onclick="triggerEvent('purchase')" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition flex items-center justify-center gap-2">
                         <i class="fa-solid fa-cart-shopping"></i> Fire af_purchase
                     </button>
                 </div>
-            </div>
 
-            <!-- RAW API TESTER -->
-            <h2 class="text-gray-700 font-bold mb-4 flex items-center gap-2 border-t pt-6 border-gray-200">
-                <i class="fa-solid fa-microscope text-orange-500"></i> Request Laboratory
-            </h2>
-            <div class="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-700 text-gray-200">
-                <p class="text-xs text-gray-400 mb-2">Test exact payloads. Defaults to the structure you confirmed working (cookie + domain).</p>
-                
-                <div class="grid grid-cols-4 gap-2 mb-2">
-                     <div class="col-span-3">
-                        <label class="block text-xs font-semibold mb-1">Endpoint</label>
-                        <input type="text" id="raw-url" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs font-mono text-green-400" value="https://wa.appsflyer.com/events?site-id=">
-                     </div>
-                     <div class="col-span-1">
-                        <label class="block text-xs font-semibold mb-1">CORS Check</label>
-                         <button onclick="testPixel()" class="w-full bg-blue-700 text-white py-2 rounded hover:bg-blue-800 transition text-xs font-bold" title="Bypasses CORS">
-                            <i class="fa-solid fa-image"></i> Pixel
-                        </button>
-                     </div>
-                </div>
-
-                <div class="mb-2">
-                    <label class="block text-xs font-semibold mb-1">Body (JSON)</label>
-                    <textarea id="raw-body" rows="4" class="w-full bg-gray-900 border border-gray-600 rounded p-2 text-xs font-mono text-green-400">{"cookie":"22157f00-ac12-4342-a6cc-e79b0f89b827-p","domain":".gabvrel.github.io"}</textarea>
-                </div>
-                
-                <div class="flex gap-2">
-                     <button onclick="sendRawRequest()" class="flex-1 bg-orange-600 text-white py-2 rounded hover:bg-orange-700 transition font-bold text-sm flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-paper-plane"></i> Send POST
+                <!-- Registration -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-semibold text-gray-800">Registration</h3>
+                        <span class="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded">Conversion</span>
+                    </div>
+                    <div class="space-y-2 text-sm mb-4">
+                        <label class="text-xs text-gray-500">Method</label>
+                        <select id="reg-method" class="w-full border rounded p-1.5">
+                            <option value="email">Email</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="google">Google</option>
+                        </select>
+                    </div>
+                    <button onclick="triggerEvent('registration')" class="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-user-plus"></i> Fire af_complete_registration
                     </button>
                 </div>
+
+                <!-- Login -->
+                <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-semibold text-gray-800">Login</h3>
+                    </div>
+                    <div class="space-y-2 text-sm mb-4">
+                        <label class="text-xs text-gray-500">Method</label>
+                        <select id="login-method" class="w-full border rounded p-1.5">
+                            <option value="email">Email</option>
+                            <option value="biometric">Biometric</option>
+                        </select>
+                    </div>
+                    <button onclick="triggerEvent('login')" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-right-to-bracket"></i> Fire af_login
+                    </button>
+                </div>
+
+                 <!-- Content View -->
+                 <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-semibold text-gray-800">Content View</h3>
+                    </div>
+                    <div class="space-y-2 text-sm mb-4">
+                        <label class="text-xs text-gray-500">Content ID (SKU)</label>
+                        <input type="text" id="content-id" placeholder="sku_1234" class="w-full border rounded p-1.5" value="sku_1234">
+                        
+                        <label class="text-xs text-gray-500">Content Type</label>
+                        <input type="text" id="content-type" placeholder="product" class="w-full border rounded p-1.5" value="product">
+                    </div>
+                    <button onclick="triggerEvent('content_view')" class="w-full bg-teal-600 text-white py-2 rounded hover:bg-teal-700 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-eye"></i> Fire af_content_view
+                    </button>
+                </div>
+            </div>
+
+            <!-- Custom Event Builder -->
+            <h2 class="text-gray-700 font-bold mb-4 flex items-center gap-2 border-t pt-6 border-gray-200">
+                <i class="fa-solid fa-code text-blue-500"></i> Custom Event Builder
+            </h2>
+            <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">Event Name</label>
+                        <input type="text" id="custom-name" value="af_level_achieved" class="w-full border rounded p-2 text-sm font-mono">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">JSON Parameters</label>
+                        <textarea id="custom-json" rows="1" class="w-full border rounded p-2 text-sm font-mono console-font" placeholder='{"level": 5, "score": 2500}'>{"level": 5, "score": 2500}</textarea>
+                    </div>
+                </div>
+                <button onclick="triggerEvent('custom')" class="w-full bg-gray-800 text-white py-2 rounded hover:bg-gray-900 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-flask"></i> Fire Custom Event
+                </button>
             </div>
 
         </div>
@@ -171,38 +186,15 @@
         <!-- Right Panel: Console Log -->
         <div class="w-full md:w-1/2 lg:w-2/5 bg-gray-900 flex flex-col border-l border-gray-700 shadow-inner">
             <div class="bg-gray-800 p-3 flex justify-between items-center border-b border-gray-700">
-                <div class="flex items-center gap-2">
-                    <span class="text-gray-300 text-sm font-mono"><i class="fa-solid fa-terminal"></i> Log</span>
-                    <!-- Transmission Toggle -->
-                    <select id="transmission-mode" onchange="toggleTransmission(this.value)" class="bg-gray-700 text-white text-xs border border-gray-600 rounded px-1 py-0.5">
-                        <option value="direct">Mode: Direct API (Fetch)</option>
-                        <option value="sdk">Mode: SDK (Standard)</option>
-                    </select>
-                </div>
-                <button onclick="clearLog()" class="text-xs text-gray-400 hover:text-white hover:bg-gray-700 px-2 py-1 rounded transition">Clear</button>
+                <span class="text-gray-300 text-sm font-mono flex items-center gap-2">
+                    <i class="fa-solid fa-terminal"></i> Event Log
+                </span>
+                <button onclick="clearLog()" class="text-xs text-gray-400 hover:text-white hover:bg-gray-700 px-2 py-1 rounded transition">
+                    Clear
+                </button>
             </div>
-            
             <div id="console-output" class="flex-1 p-4 overflow-y-auto custom-scroll font-mono text-sm space-y-4 text-green-400">
                 <div class="text-gray-500 italic text-xs">Waiting for events...</div>
-            </div>
-
-            <!-- Direct Mode Options -->
-            <div id="direct-options" class="p-2 bg-gray-800 border-t border-gray-700 text-xs text-gray-400 space-y-2">
-                 <div class="flex items-center gap-2">
-                    <span class="font-bold text-blue-300">Protocol:</span>
-                    <label class="inline-flex items-center">
-                        <input type="radio" name="protocol-type" value="simple" checked onchange="logToConsole('SYSTEM', 'Protocol set to Simplified (Matches your manual test)', 'text-blue-300')">
-                        <span class="ml-1">Simplified (Flat)</span>
-                    </label>
-                    <label class="inline-flex items-center">
-                        <input type="radio" name="protocol-type" value="standard" onchange="logToConsole('SYSTEM', 'Protocol set to SDK Internal (data/meta)', 'text-blue-300')">
-                        <span class="ml-1">SDK Internal</span>
-                    </label>
-                 </div>
-                 <div class="flex items-center gap-2">
-                    <input type="checkbox" id="chk-obj-val" checked>
-                    <label for="chk-obj-val">Send eventValue as Object (Uncheck for String)</label>
-                 </div>
             </div>
         </div>
     </div>
@@ -238,91 +230,20 @@
             webAppId: null,
             cuid: null,
             isInitialized: false,
-            sdkLoaded: false,
-            transmissionMode: 'direct' // Default to direct since SDK fails
+            sdkLoaded: false
         };
-
-        // --- Utils ---
-        function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        }
-
-        function toggleTransmission(mode) {
-            state.transmissionMode = mode;
-            if(mode === 'direct') {
-                document.getElementById('direct-options').classList.remove('hidden');
-                logToConsole('SYSTEM', 'Switched to Direct API Mode. Bypassing SDK script.', 'text-purple-400');
-            } else {
-                document.getElementById('direct-options').classList.add('hidden');
-                logToConsole('SYSTEM', 'Switched to SDK Mode.', 'text-blue-300');
-            }
-        }
-
-        // --- Network Interceptor ---
-        function enableNetworkLogs() {
-            const originalOpen = XMLHttpRequest.prototype.open;
-            const originalSend = XMLHttpRequest.prototype.send;
-
-            XMLHttpRequest.prototype.open = function(method, url) {
-                this._url = url;
-                return originalOpen.apply(this, arguments);
-            };
-
-            XMLHttpRequest.prototype.send = function(body) {
-                if (this._url && this._url.includes('appsflyer.com')) {
-                    this.addEventListener('load', function() {
-                        const status = this.status;
-                        const response = this.responseText;
-                        let color = status >= 200 && status < 300 ? 'text-green-300' : 'text-red-400';
-                        
-                        let msg = `SDK Response: ${status}`;
-                        try {
-                            if(response) {
-                                let cleanResponse = response;
-                                try {
-                                    const json = JSON.parse(response);
-                                    if(json.error) cleanResponse = `Error: ${JSON.stringify(json.error)}`;
-                                    else if (json.message) cleanResponse = `Msg: ${json.message}`;
-                                } catch(e) {}
-                                msg += `\nBody: ${cleanResponse}`;
-                            }
-                        } catch(e) { msg += `\n${response}`; }
-
-                        const type = status >= 200 && status < 300 ? 'SUCCESS' : 'FAILURE';
-                        if(state.transmissionMode === 'sdk') {
-                             logToConsole(type, msg, color);
-                        }
-                    });
-                }
-                return originalSend.apply(this, arguments);
-            };
-        }
 
         // --- Init Logic ---
         function init() {
-            enableNetworkLogs();
-
+            // Check protocol first
             if (window.location.protocol === 'file:') {
                 document.getElementById('protocol-warning').classList.remove('hidden');
-            }
-
-            if (navigator.brave || (navigator.userAgent.includes('Brave')) || (navigator.userAgent.includes('Chrome') && !window.chrome)) {
-                 document.getElementById('error-banner').classList.remove('hidden');
             }
 
             const savedId = localStorage.getItem('af_webapp_id');
             const savedCuid = localStorage.getItem('af_cuid');
             const connText = document.getElementById('conn-text');
             const connDot = document.getElementById('conn-dot');
-            const rawUrlInput = document.getElementById('raw-url');
-
-            // Initialize mode selection in UI
-            document.getElementById('transmission-mode').value = state.transmissionMode;
-            if (state.transmissionMode === 'direct') document.getElementById('direct-options').classList.remove('hidden');
-
 
             if (savedId) {
                 state.webAppId = savedId;
@@ -334,13 +255,11 @@
                 connText.textContent = "Loading SDK...";
                 connDot.className = "w-2 h-2 rounded-full bg-yellow-400 animate-pulse";
                 
-                rawUrlInput.value = `https://wa.appsflyer.com/events?site-id=${savedId}`;
-                
                 initializeSDK(savedId, savedCuid);
             } else {
                 connText.textContent = "Simulation Mode";
                 connDot.className = "w-2 h-2 rounded-full bg-gray-400";
-                toggleConfig(); 
+                toggleConfig(); // Auto-open config if empty
             }
         }
 
@@ -349,6 +268,7 @@
             logToConsole('SYSTEM', `Initializing SDK with Web App ID: ${appId}`);
             if(cuid) logToConsole('SYSTEM', `Setting Customer User ID (CUID): ${cuid}`);
 
+            // AppsFlyer Snippet
             !function(t,e,n,s,a,c,i,o,p){t.AppsFlyerSdkObject=a,t.AF=t.AF||function(){
             (t.AF.q=t.AF.q||[]).push([Date.now()].concat(Array.prototype.slice.call(arguments)))},
             t.AF.id=t.AF.id||i,t.AF.plugins={},o=e.createElement(n),p=e.getElementsByTagName(n)[0],o.async=1,
@@ -356,9 +276,12 @@
             o.onload = function() {
                 state.sdkLoaded = true;
                 state.isInitialized = true;
+                
+                // If CUID exists, set it immediately after load
                 if(cuid) {
                     window.AF('pba', 'setCustomerUserId', cuid);
                 }
+
                 updateStatus(true);
                 logToConsole('SUCCESS', 'AppsFlyer Web SDK script loaded.', 'text-blue-300');
             };
@@ -391,20 +314,26 @@
             }
         }
 
+        // --- UI Logic ---
         function toggleConfig() {
             document.getElementById('config-modal').classList.toggle('hidden');
         }
 
         function saveConfig() {
+            // TRIM whitespace which can cause 400s
             const appId = document.getElementById('config-appid').value.trim();
             const cuid = document.getElementById('config-cuid').value.trim();
             const errorMsg = document.getElementById('id-error');
+            
+            // Basic Validation for PBA ID (Should look like UUID)
             const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
             
             if (appId && !uuidRegex.test(appId)) {
                 errorMsg.classList.remove('hidden');
-                errorMsg.textContent = "Warning: This does not look like a Web PBA ID (UUID).";
-                if(!confirm("The ID format looks wrong. Continue?")) return;
+                errorMsg.textContent = "Warning: This does not look like a Web PBA ID (UUID). 400 Errors likely.";
+                if(!confirm("The ID format looks wrong (usually should be a UUID like a1b2-c3d4...). Continue anyway?")) {
+                    return;
+                }
             } else {
                 errorMsg.classList.add('hidden');
             }
@@ -422,9 +351,11 @@
 
         function logToConsole(type, message, colorClass = 'text-green-400') {
             const consoleOutput = document.getElementById('console-output');
+            
             if (consoleOutput.children.length === 1 && consoleOutput.children[0].classList.contains('italic')) {
                 consoleOutput.innerHTML = '';
             }
+
             const timestamp = new Date().toLocaleTimeString();
             const entry = document.createElement('div');
             entry.className = 'border-b border-gray-800 pb-2 mb-2 animate-fade-in';
@@ -435,171 +366,13 @@
                 </div>
                 <pre class="${colorClass} whitespace-pre-wrap break-all text-sm">${message}</pre>
             `;
+            
             consoleOutput.appendChild(entry);
             consoleOutput.scrollTop = consoleOutput.scrollHeight;
         }
 
         function clearLog() {
             document.getElementById('console-output').innerHTML = '<div class="text-gray-500 italic text-xs">Waiting for events...</div>';
-        }
-
-        function testPixel() {
-            const appId = state.webAppId || document.getElementById('config-appid').value;
-            if(!appId) {
-                logToConsole('ERROR', 'No App ID configured', 'text-red-400');
-                return;
-            }
-            const url = `https://wa.appsflyer.com/favicon.ico?id=${appId}&t=${Date.now()}`;
-            logToConsole('PIXEL_TEST', `Loading image from: ${url}`, 'text-blue-300');
-            const img = new Image();
-            img.onload = () => logToConsole('PIXEL_SUCCESS', 'Connection ESTABLISHED (Image loaded)', 'text-green-400 font-bold');
-            img.onerror = () => logToConsole('PIXEL_FAIL', 'Connection BLOCKED or Image not found. (Check Adblock/Firewall)', 'text-red-500');
-            img.src = url;
-        }
-
-        // --- ANDROID REPLICATOR Logic ---
-        function triggerAndroidReplica() {
-            const eventName = document.getElementById('android-event-name').value;
-            let jsonBody = document.getElementById('android-json-body').value;
-
-            try {
-                // Parse the Android log JSON
-                let params = JSON.parse(jsonBody);
-                let fixLog = [];
-
-                // 1. Fix Revenue: Android 'amount' -> Web 'af_revenue'
-                if (params.amount !== undefined && params.af_revenue === undefined) {
-                    params.af_revenue = params.amount;
-                    fixLog.push(`Mapped "amount" (${params.amount}) to "af_revenue"`);
-                }
-
-                // 2. Fix Currency: Android 'currency' -> Web 'af_currency'
-                if (params.currency !== undefined && params.af_currency === undefined) {
-                    params.af_currency = params.currency;
-                    fixLog.push(`Mapped "currency" (${params.currency}) to "af_currency"`);
-                }
-
-                // 3. Ensure Content ID (Often mandatory for purchase)
-                if (eventName === 'af_purchase' && !params.af_content_id) {
-                    params.af_content_id = "default_sku"; 
-                    fixLog.push('Added missing "af_content_id"');
-                }
-
-                if(fixLog.length > 0) {
-                    logToConsole('AUTO-FIX', fixLog.join('\n'), 'text-yellow-400');
-                }
-
-                // Send via Direct API
-                triggerEventDirect(eventName, params);
-
-            } catch(e) {
-                logToConsole('ERROR', `Invalid JSON in Replicator: ${e.message}`, 'text-red-400');
-            }
-        }
-
-        async function triggerEventDirect(eventName, eventParams) {
-             const appId = state.webAppId;
-             if(!appId) {
-                logToConsole('ERROR', 'No App ID', 'text-red-400');
-                return;
-             }
-
-             const protocol = document.querySelector('input[name="protocol-type"]:checked').value;
-             const sendAsObject = document.getElementById('chk-obj-val').checked;
-             let eventValueToSend = eventParams;
-             
-             if (!sendAsObject) {
-                 eventValueToSend = JSON.stringify(eventParams);
-             }
-
-             let payload = {};
-
-             if (protocol === 'simple') {
-                 // SIMPLIFIED PROTOCOL (Matches user's successful manual test)
-                 // This structure flattens the hierarchy
-                 payload = {
-                     eventType: eventName,
-                     eventValue: eventValueToSend,
-                     // "cookie" acts as the User ID in this simplified endpoint structure
-                     cookie: generateUUID() + '-p', // Adding suffix as seen in user trace
-                     domain: window.location.hostname || 'localhost',
-                     timestamp: Date.now()
-                 };
-             } else {
-                 // STANDARD/SDK INTERNAL PROTOCOL
-                 payload = {
-                     data: {
-                         eventType: eventName,
-                         eventValue: eventValueToSend,
-                         webAppId: appId,
-                         afWebUserId: generateUUID(),
-                         url: window.location.href,
-                         timestamp: Date.now()
-                     },
-                     meta: {
-                         userAgent: navigator.userAgent,
-                         languageKey: navigator.language || 'en',
-                         screenResolutionWidth: window.screen.width,
-                         screenResolutionHeight: window.screen.height,
-                         cookieEnabled: navigator.cookieEnabled,
-                         referrer: document.referrer || window.location.href
-                     }
-                 };
-             }
-
-             const url = `https://wa.appsflyer.com/events?site-id=${appId}`;
-             logToConsole('DIRECT_SEND', `Sending (${protocol.toUpperCase()} PROTOCOL)...\nPayload Keys: ${Object.keys(payload).join(', ')}`, 'text-purple-300');
-             
-             try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include', 
-                    body: JSON.stringify(payload)
-                });
-                
-                const text = await response.text();
-                
-                if (response.ok) {
-                    logToConsole('DIRECT_SUCCESS', `Status: ${response.status}\nServer accepted payload!`, 'text-green-400 font-bold');
-                } else {
-                    logToConsole('DIRECT_FAIL', `Status: ${response.status}\nError: ${text}`, 'text-red-500 font-bold');
-                }
-             } catch (e) {
-                 logToConsole('DIRECT_ERROR', e.message, 'text-red-500');
-             }
-        }
-
-        // --- RAW API LOGIC (Manual) ---
-        async function sendRawRequest() {
-            const url = document.getElementById('raw-url').value;
-            const bodyStr = document.getElementById('raw-body').value;
-            
-            logToConsole('RAW_SEND', `Method: POST\nURL: ${url}\nBody: ${bodyStr}`, 'text-orange-300');
-
-            try {
-                if (!bodyStr || bodyStr.trim() === '') {
-                    logToConsole('ABORT', 'POST Body cannot be empty!', 'text-red-500');
-                    return;
-                }
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include', 
-                    body: bodyStr
-                });
-                
-                const text = await response.text();
-                
-                if (response.ok) {
-                    logToConsole('RAW_SUCCESS', `Status: ${response.status} OK\nResponse: ${text}`, 'text-green-400 font-bold');
-                } else {
-                    logToConsole('RAW_FAIL', `Status: ${response.status}\nResponse: ${text}`, 'text-red-500 font-bold');
-                }
-            } catch (error) {
-                logToConsole('RAW_ERROR', `Network Error: ${error.message}\nNote: Check CORS/AdBlock`, 'text-red-500');
-            }
         }
 
         // --- Event Trigger Logic ---
@@ -609,12 +382,9 @@
 
             try {
                 switch(type) {
-                    case 'ping':
-                         eventName = 'custom_ping_test';
-                         eventParams = { status: 'alive' };
-                         break;
                     case 'purchase':
                         eventName = 'af_purchase';
+                        // SANITIZATION: Ensure revenue is a number, not string
                         const revenue = parseFloat(document.getElementById('purchase-revenue').value);
                         if(isNaN(revenue)) throw new Error("Revenue must be a valid number");
                         
@@ -624,10 +394,11 @@
                             af_order_id: document.getElementById('purchase-id').value
                         };
                         
-                        let contentId = document.getElementById('purchase-content-id').value.trim();
-                        if (!contentId) contentId = 'default_sku_1'; 
-                        eventParams.af_content_id = contentId;
-                        eventParams.af_content_type = 'product';
+                        // Adding Content ID (Often mandatory for Purchase)
+                        const contentId = document.getElementById('purchase-content-id').value.trim();
+                        if (contentId) {
+                            eventParams.af_content_id = contentId;
+                        }
                         break;
                     case 'registration':
                         eventName = 'af_complete_registration';
@@ -655,24 +426,23 @@
                 return;
             }
 
-            // --- BRANCH LOGIC ---
-            if (state.transmissionMode === 'direct') {
-                triggerEventDirect(eventName, eventParams);
-                return;
-            }
-
-            // SDK Mode
+            // Construct payload strictly
             const eventPayload = { 
                 eventType: eventName, 
                 eventValue: eventParams 
             };
 
-            logToConsole('EVENT FIRED (SDK)', `window.AF('pba', 'event', ${JSON.stringify(eventPayload, null, 2)})`);
+            logToConsole('EVENT FIRED', `window.AF('pba', 'event', ${JSON.stringify(eventPayload, null, 2)})`);
 
+            // Execute Live
             if (state.sdkLoaded && window.AF) {
+                // IMPORTANT: AppsFlyer requires non-null values.
+                // If eventValue contains nulls, it might throw 400.
                 window.AF('pba', 'event', eventPayload);
+                
+                logToConsole('STATUS', 'Sent to SDK.', 'text-gray-400 italic');
             } else if (state.webAppId) {
-                 logToConsole('WARNING', 'SDK configured but script not loaded.', 'text-yellow-500');
+                 logToConsole('WARNING', 'SDK configured but script not loaded (AdBlock or Init fail).', 'text-yellow-500');
             } else {
                 logToConsole('SIMULATION', 'Simulation only. No ID configured.', 'text-yellow-500');
             }
