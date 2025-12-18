@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AppsFlyer PBA + GTM Event Tester</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
         .code-block { font-family: 'Fira Code', monospace; }
@@ -161,8 +161,12 @@
     </footer>
 
     <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
+        // Initialize Lucide icons safely
+        document.addEventListener("DOMContentLoaded", () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
 
         // 1. Initialize Data Layer if not present
         window.dataLayer = window.dataLayer || [];
@@ -184,7 +188,11 @@
             statusDiv.classList.remove('bg-red-50', 'text-red-600');
             statusDiv.classList.add('bg-green-50', 'text-green-700');
             statusDiv.innerHTML = `<i data-lucide="check-circle" class="h-4 w-4"></i> <span>Injecting container <strong>${gtmId}</strong>... Check your browser extensions.</span>`;
-            lucide.createIcons();
+            
+            // Refresh icons for new content
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
 
             // Actual GTM Injection Logic
             (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
