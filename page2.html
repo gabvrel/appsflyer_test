@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AppsFlyer Web Test – conecty-test</title>
+
+  <!-- AppsFlyer Web SDK -->
+  <script>
+    (function(t,e,n,s,a,c,i,o,p){
+      t.AppsFlyerSdkObject=a;
+      t.AF=t.AF||function(){(t.AF.q=t.AF.q||[]).push(arguments)};
+      t.AF.l=1*new Date();
+      c=e.createElement(n);
+      i=e.getElementsByTagName(n)[0];
+      c.async=1;
+      c.src=s;
+      i.parentNode.insertBefore(c,i);
+    })(window,document,"script","https://websdk.appsflyer.com?st=web","AF");
+  </script>
+</head>
+
+<body>
+  <h1>AppsFlyer Web Test</h1>
+  <button onclick="sendPurchase()">Send Purchase Event</button>
+
+  <script>
+    /* 1️⃣ Initialize AppsFlyer */
+    AF('init', {
+      appID: 'web-gabvrel.github.io/appsflyer_test',
+      webApp: true
+    });
+
+    /* 2️⃣ Send a purchase (revenue) event */
+    function sendPurchase() {
+      AF('event', 'af_purchase', {
+        af_revenue: 9.99,
+        af_currency: 'USD',
+        af_order_id: 'TEST_ORDER_001',
+        af_content_id: 'test_product_1',
+        af_quantity: 1
+      });
+
+      alert('Purchase event sent');
+    }
+  </script>
+</body>
+</html>
